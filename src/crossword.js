@@ -1,3 +1,5 @@
+var shuffle = require("./shuffle");
+
 const Constants = {
   UNPLAYABLE: "_",
   ACROSS: Symbol("ACROSS"),
@@ -12,15 +14,7 @@ function Crossword(cells, across, down, wordlist) {
   function Word(startId, length, direction) {
     return {
       getOptions: function() {
-        return wordlist.matches(this.get(), false);
-      },
-      
-      _each: function(callback) {
-        var delta = direction == Constants.ACROSS ? 1 : size;
-        for (var i = 0; i < length; i++) {
-          var cellIndex = startId + i * delta;
-          callback(i, cellIndex);
-        }
+        return wordlist.matches(this.get(), true);
       },
 
       hasBlanks: function() {
@@ -32,19 +26,22 @@ function Crossword(cells, across, down, wordlist) {
       },
       
       set: function(word) {
-        var newCells = cells.slice();
-        this._each(function(index, cellIndex) {
-          newCells[cellIndex] = word[index];
-        });
-        wordlist.remove(word)
+        var newCells = cells.slice(),
+            delta = direction == Constants.ACROSS ? 1 : size;
+        for (var i = 0; i < length; i++) {
+          var cellIndex = startId + i * delta;
+          newCells[cellIndex] = word[i];
+        }
         return new Crossword(newCells, across, down, wordlist);
       },      
 
       get: function() {
-        var result = "";
-        this._each(function(_, cellIndex) {
+        var result = "",
+            delta = direction == Constants.ACROSS ? 1 : size;
+        for (var i = 0; i < length; i++) {
+          var cellIndex = startId + i * delta;
           result += cells[cellIndex];
-        });
+        }
         return result;
       }
     }
@@ -69,6 +66,7 @@ function Crossword(cells, across, down, wordlist) {
       return result;
     },
     getWords: function(forDirection) {
+      
       if (forDirection) {
         return words.filter(function(e) {
           return e.getDirection() === forDirection;
@@ -76,16 +74,20 @@ function Crossword(cells, across, down, wordlist) {
       }
       return words;
     },
-    isValid: function() {
-      var words = this.getWords();
+
+    getValidity: function() {
+      var words = this.getWords(),
+          sum = 0;
       for (var i = 0, word; word = words[i]; i++) {
-        var wl = wordlist.matches(word.get(), false);
+        var wl = wordlist.matches(word.get(), false).length;
         if (wl == 0) {
           return false;
         }
+        sum += wl;
       }
-      return true;
+      return sum;
     },
+    
     isComplete: function() {
       return cells.indexOf(Constants.UNPLAYABLE) == -1;
     }
@@ -96,21 +98,25 @@ function WordList(words) {
   var used = [];
   return {
     remove: function(word) {
-//      used.push(word);
+      used.push(word);
     },
     matches: function(searchWord, omitUsed) {
-      var cleanTerm = searchWord.replace(new RegExp(Constants.UNPLAYABLE, "g"), "\\w"),
-          re = new RegExp(cleanTerm), result = [];
-      for (var i = 0, word; word = words[i]; i++) {
-        if (omitUsed) {
-          if (used.indexOf(word) == -1 && re.test(word)) {
-            result.push(word);
+      var matchIndexes = [], result = [];
+      for (var i = 0, l = searchWord.length; i < l; i++) {
+        if (searchWord[i] !== Constants.UNPLAYABLE) {
+          matchIndexes.push(i);
+        }
+      }
+      for (var j = 0, word; word = words[j]; j++) {
+        var matched = true;
+        for (var i = 0, l = matchIndexes.length; i < l; i++) {
+          if (word[matchIndexes[i]] !== searchWord[matchIndexes[i]]) {
+            matched = false;
+            continue;
           }
-          
-        } else {
-          if (re.test(word)) {
-            result.push(word);
-          }
+        }
+        if (matched && word.length === searchWord.length) {
+          result.push(word);  
         }
       }
       return result;
@@ -120,28 +126,32 @@ function WordList(words) {
 
 
 function solve(crossword, callback, progressCallback) {
-
+  
   if (crossword.isComplete()) {
     callback(crossword);
     return true;
   }
-     
+
   var words = crossword.getWords(),
       candidates = words.filter(function(e) {
         return e.hasBlanks();
       }),
       word = candidates[parseInt(Math.random() * candidates.length)];
   
-  var options = word.getOptions();
+  if (!word) {
+    return false;
+  }
+  
+  var options = shuffle(word.getOptions());
+  
   for (var j = 0, option; option = options[j]; j++) {
-    var newState = word.set(option);
-
-    if (newState.isValid()) {
-      
+    var newState = word.set(option),
+        validity = newState.getValidity();
+    
+    if (validity !== false) {
       if (progressCallback) {
-        progressCallback(newState);
+        progressCallback(newState, j + " " + validity);
       }
-
       if (solve(newState, callback, progressCallback) === true) {
         return true;
       }
