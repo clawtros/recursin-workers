@@ -24,7 +24,7 @@
     <p id="words"></p>
     <script>
 
-     var worker = new Worker("crossword-worker.js"),
+     var worker = new Worker("dist/crossword-worker.js"),
          output = document.getElementById("output");     
      worker.postMessage({"size": 5});
      worker.addEventListener("message", function(message) {

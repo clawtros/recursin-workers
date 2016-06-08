@@ -45,27 +45,8 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	var jscw = __webpack_require__(1);
-	var nytwords = __webpack_require__(2);
-
-
-	function shuffle(array) {
-	  var currentIndex = array.length, temporaryValue, randomIndex;
-
-	  // While there remain elements to shuffle...
-	  while (0 !== currentIndex) {
-
-	    // Pick a remaining element...
-	    randomIndex = Math.floor(Math.random() * currentIndex);
-	    currentIndex -= 1;
-
-	    // And swap it with the current element.
-	    temporaryValue = array[currentIndex];
-	    array[currentIndex] = array[randomIndex];
-	    array[randomIndex] = temporaryValue;
-	  }
-
-	  return array;
-	}
+	var nytwords = __webpack_require__(3);
+	var shuffle = __webpack_require__(2);
 
 	function makeSquare(size, wordlist) {
 	  var cells = [], across = {}, down = {};
@@ -94,8 +75,12 @@
 	}
 
 	self.addEventListener("message", function(message) {
-	  jscw.solve(makeSquare(message.data.size), function() {}, function (result) {
-	    self.postMessage(result.toString());
+	  jscw.solve(makeSquare(message.data.size), function(result) {
+	    self.postMessage({type: "complete", "grid": result.toString(), words: result.getWords().map(function(e) {
+	      return e.get();
+	    })});
+	  }, function (result, validity) {
+	    self.postMessage({type:"progress", validity: validity, "grid": result.toString()});
 	  });  
 	})
 	  
@@ -103,7 +88,9 @@
 
 /***/ },
 /* 1 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
+
+	var shuffle = __webpack_require__(2);
 
 	const Constants = {
 	  UNPLAYABLE: "_",
@@ -119,15 +106,7 @@
 	  function Word(startId, length, direction) {
 	    return {
 	      getOptions: function() {
-	        return wordlist.matches(this.get(), false);
-	      },
-	      
-	      _each: function(callback) {
-	        var delta = direction == Constants.ACROSS ? 1 : size;
-	        for (var i = 0; i < length; i++) {
-	          var cellIndex = startId + i * delta;
-	          callback(i, cellIndex);
-	        }
+	        return wordlist.matches(this.get(), true);
 	      },
 
 	      hasBlanks: function() {
@@ -139,19 +118,22 @@
 	      },
 	      
 	      set: function(word) {
-	        var newCells = cells.slice();
-	        this._each(function(index, cellIndex) {
-	          newCells[cellIndex] = word[index];
-	        });
-	        wordlist.remove(word)
+	        var newCells = cells.slice(),
+	            delta = direction == Constants.ACROSS ? 1 : size;
+	        for (var i = 0; i < length; i++) {
+	          var cellIndex = startId + i * delta;
+	          newCells[cellIndex] = word[i];
+	        }
 	        return new Crossword(newCells, across, down, wordlist);
 	      },      
 
 	      get: function() {
-	        var result = "";
-	        this._each(function(_, cellIndex) {
+	        var result = "",
+	            delta = direction == Constants.ACROSS ? 1 : size;
+	        for (var i = 0; i < length; i++) {
+	          var cellIndex = startId + i * delta;
 	          result += cells[cellIndex];
-	        });
+	        }
 	        return result;
 	      }
 	    }
@@ -176,6 +158,7 @@
 	      return result;
 	    },
 	    getWords: function(forDirection) {
+	      
 	      if (forDirection) {
 	        return words.filter(function(e) {
 	          return e.getDirection() === forDirection;
@@ -183,16 +166,20 @@
 	      }
 	      return words;
 	    },
-	    isValid: function() {
-	      var words = this.getWords();
+
+	    getValidity: function() {
+	      var words = this.getWords(),
+	          sum = 0;
 	      for (var i = 0, word; word = words[i]; i++) {
-	        var wl = wordlist.matches(word.get(), false);
+	        var wl = wordlist.matches(word.get(), false).length;
 	        if (wl == 0) {
 	          return false;
 	        }
+	        sum += wl;
 	      }
-	      return true;
+	      return sum;
 	    },
+	    
 	    isComplete: function() {
 	      return cells.indexOf(Constants.UNPLAYABLE) == -1;
 	    }
@@ -203,21 +190,25 @@
 	  var used = [];
 	  return {
 	    remove: function(word) {
-	//      used.push(word);
+	      used.push(word);
 	    },
 	    matches: function(searchWord, omitUsed) {
-	      var cleanTerm = searchWord.replace(new RegExp(Constants.UNPLAYABLE, "g"), "\\w"),
-	          re = new RegExp(cleanTerm), result = [];
-	      for (var i = 0, word; word = words[i]; i++) {
-	        if (omitUsed) {
-	          if (used.indexOf(word) == -1 && re.test(word)) {
-	            result.push(word);
+	      var matchIndexes = [], result = [];
+	      for (var i = 0, l = searchWord.length; i < l; i++) {
+	        if (searchWord[i] !== Constants.UNPLAYABLE) {
+	          matchIndexes.push(i);
+	        }
+	      }
+	      for (var j = 0, word; word = words[j]; j++) {
+	        var matched = true;
+	        for (var i = 0, l = matchIndexes.length; i < l; i++) {
+	          if (word[matchIndexes[i]] !== searchWord[matchIndexes[i]]) {
+	            matched = false;
+	            continue;
 	          }
-	          
-	        } else {
-	          if (re.test(word)) {
-	            result.push(word);
-	          }
+	        }
+	        if (matched && word.length === searchWord.length) {
+	          result.push(word);  
 	        }
 	      }
 	      return result;
@@ -227,32 +218,37 @@
 
 
 	function solve(crossword, callback, progressCallback) {
-
+	  
 	  if (crossword.isComplete()) {
 	    callback(crossword);
 	    return true;
 	  }
-	     
+
 	  var words = crossword.getWords(),
 	      candidates = words.filter(function(e) {
 	        return e.hasBlanks();
 	      }),
 	      word = candidates[parseInt(Math.random() * candidates.length)];
 	  
-	  var options = word.getOptions();
+	  if (!word) {
+	    return false;
+	  }
+	  
+	  var options = shuffle(word.getOptions());
+	  
 	  for (var j = 0, option; option = options[j]; j++) {
-	    var newState = word.set(option);
+	    var newState = word.set(option),
+	        validity = newState.getValidity();    
+	    if (progressCallback) {
+	      progressCallback(newState, j + " " + validity);
+	    }
 
-	    if (newState.isValid()) {
-	      
-	      if (progressCallback) {
-	        progressCallback(newState);
-	      }
+	    if (validity !== false) {
 
 	      if (solve(newState, callback, progressCallback) === true) {
 	        return true;
 	      }
-	    }
+	    } 
 	  }
 	  return false;
 	  
@@ -268,6 +264,31 @@
 
 /***/ },
 /* 2 */
+/***/ function(module, exports) {
+
+	
+	module.exports = function (array) {
+	  var currentIndex = array.length, temporaryValue, randomIndex;
+
+	  // While there remain elements to shuffle...
+	  while (0 !== currentIndex) {
+
+	    // Pick a remaining element...
+	    randomIndex = Math.floor(Math.random() * currentIndex);
+	    currentIndex -= 1;
+
+	    // And swap it with the current element.
+	    temporaryValue = array[currentIndex];
+	    array[currentIndex] = array[randomIndex];
+	    array[randomIndex] = temporaryValue;
+	  }
+
+	  return array;
+	}
+
+
+/***/ },
+/* 3 */
 /***/ function(module, exports) {
 
 	module.exports = ['a',

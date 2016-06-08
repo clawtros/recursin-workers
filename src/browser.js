@@ -1,6 +1,6 @@
-var jscw = require("./src/crossword");
-var nytwords = require('./src/nytwords');
-var shuffle = require('./src/shuffle');
+var jscw = require("./crossword");
+var nytwords = require('./nytwords');
+var shuffle = require('./shuffle');
 
 function makeSquare(size, wordlist) {
   var cells = [], across = {}, down = {};
