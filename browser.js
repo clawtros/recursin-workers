@@ -1,25 +1,6 @@
 var jscw = require("./src/crossword");
 var nytwords = require('./src/nytwords');
-
-
-function shuffle(array) {
-  var currentIndex = array.length, temporaryValue, randomIndex;
-
-  // While there remain elements to shuffle...
-  while (0 !== currentIndex) {
-
-    // Pick a remaining element...
-    randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex -= 1;
-
-    // And swap it with the current element.
-    temporaryValue = array[currentIndex];
-    array[currentIndex] = array[randomIndex];
-    array[randomIndex] = temporaryValue;
-  }
-
-  return array;
-}
+var shuffle = require('./src/shuffle');
 
 function makeSquare(size, wordlist) {
   var cells = [], across = {}, down = {};
@@ -48,8 +29,12 @@ function makeSquare(size, wordlist) {
 }
 
 self.addEventListener("message", function(message) {
-  jscw.solve(makeSquare(message.data.size), function() {}, function (result) {
-    self.postMessage(result.toString());
+  jscw.solve(makeSquare(message.data.size), function(result) {
+    self.postMessage({type: "complete", "grid": result.toString(), words: result.getWords().map(function(e) {
+      return e.get();
+    })});
+  }, function (result, validity) {
+    self.postMessage({type:"progress", validity: validity, "grid": result.toString()});
   });  
 })
   

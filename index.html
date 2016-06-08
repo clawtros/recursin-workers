@@ -6,21 +6,39 @@
     <style>
      pre {
        letter-spacing: 5px;
-       font-size: 24px;
+       font-size: 36px;
+     }
+     body {
+       max-width: 720px;
+       margin: 10px auto;
+       font-family: monospace;
+       text-align: center;
+     }
+
+     #words {
+       text-transform: uppercase;
      }
     </style>
   </head>
   <body>
     <h1 id="title">Working</h1>
     <pre id="output"></pre>
+    <p id="words"></p>
     <script>
-     var worker = new Worker("foo.js"),
+     var worker = new Worker("crossword-worker.js"),
          output = document.getElementById("output");
      
      worker.postMessage({"size": 5});
-     console.log(worker);
      worker.addEventListener("message", function(message) {
-       output.innerHTML = message.data.toString();
+       if (message.data.type === "complete") {
+         document.getElementById("title").innerHTML = "Complete!";
+         document.getElementById("words").innerHTML = message.data.words.join(", ");
+
+       } else {
+         document.getElementById("words").innerHTML = message.data.validity;         
+       }
+       output.innerHTML = message.data.grid;
+
      });
     </script>
   </body>
