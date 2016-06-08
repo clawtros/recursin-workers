@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+  <head>
+    <title></title>
+    <meta charset="utf-8" />
+    <style>
+     pre {
+       letter-spacing: 5px;
+       font-size: 24px;
+     }
+    </style>
+  </head>
+  <body>
+    <h1 id="title">Working</h1>
+    <pre id="output"></pre>
+    <script>
+     var worker = new Worker("foo.js"),
+         output = document.getElementById("output");
+     
+     worker.postMessage({"size": 5});
+     console.log(worker);
+     worker.addEventListener("message", function(message) {
+       output.innerHTML = message.data.toString();
+     });
+    </script>
+  </body>
+</html>
