@@ -146,16 +146,17 @@ function solve(crossword, callback, progressCallback) {
   
   for (var j = 0, option; option = options[j]; j++) {
     var newState = word.set(option),
-        validity = newState.getValidity();
-    
+        validity = newState.getValidity();    
+    if (progressCallback) {
+      progressCallback(newState, j + " " + validity);
+    }
+
     if (validity !== false) {
-      if (progressCallback) {
-        progressCallback(newState, j + " " + validity);
-      }
+
       if (solve(newState, callback, progressCallback) === true) {
         return true;
       }
-    }
+    } 
   }
   return false;
   

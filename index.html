@@ -6,11 +6,9 @@
     <style>
      pre {
        letter-spacing: 5px;
-       font-size: 36px;
+       font-size: 4em;
      }
      body {
-       max-width: 720px;
-       margin: 10px auto;
        font-family: monospace;
        text-align: center;
      }
@@ -25,9 +23,9 @@
     <pre id="output"></pre>
     <p id="words"></p>
     <script>
+
      var worker = new Worker("crossword-worker.js"),
-         output = document.getElementById("output");
-     
+         output = document.getElementById("output");     
      worker.postMessage({"size": 5});
      worker.addEventListener("message", function(message) {
        if (message.data.type === "complete") {
@@ -37,8 +35,8 @@
        } else {
          document.getElementById("words").innerHTML = message.data.validity;         
        }
-       output.innerHTML = message.data.grid;
 
+       output.innerHTML = message.data.grid;
      });
     </script>
   </body>
