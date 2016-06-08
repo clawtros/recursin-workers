@@ -47,12 +47,17 @@ function makeSquare(size, wordlist) {
                             ));
 }
 
+/* 
+ * jscw.solve(makeSquare(size), function(result) {
+ *   console.log(result.toString())
+ *   console.log("----")
+ *   var words = result.getWords();
+ *   for (var i = 0, word; word = words[i]; i++) {
+ *     console.log(word.get());
+ *   }
+ * });  */
+console.log("HERE");
+window.testThing = function(size, progressCallback) {
 
-jscw.solve(makeSquare(process.argv[2]), function(result) {
-  console.log(result.toString())
-  console.log("----")
-  var words = result.getWords();
-  for (var i = 0, word; word = words[i]; i++) {
-    console.log(word.get());
-  }
-});
+  jscw.solve(makeSquare(size), function() {}, progressCallback);  
+}

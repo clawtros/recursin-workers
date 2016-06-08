@@ -12,7 +12,7 @@ function Crossword(cells, across, down, wordlist) {
   function Word(startId, length, direction) {
     return {
       getOptions: function() {
-        return wordlist.matches(this.get(), true);
+        return wordlist.matches(this.get(), false);
       },
       
       _each: function(callback) {
@@ -96,59 +96,58 @@ function WordList(words) {
   var used = [];
   return {
     remove: function(word) {
-      used.push(word);
+//      used.push(word);
     },
     matches: function(searchWord, omitUsed) {
       var cleanTerm = searchWord.replace(new RegExp(Constants.UNPLAYABLE, "g"), "\\w"),
-          re = new RegExp(cleanTerm);
-      return words.filter(function(word) {
+          re = new RegExp(cleanTerm), result = [];
+      for (var i = 0, word; word = words[i]; i++) {
         if (omitUsed) {
-          return used.indexOf(word) == -1 && re.test(word);          
+          if (used.indexOf(word) == -1 && re.test(word)) {
+            result.push(word);
+          }
+          
+        } else {
+          if (re.test(word)) {
+            result.push(word);
+          }
         }
-        return re.test(word);
-      })
+      }
+      return result;
     }
   }
 }
 
 
-function solve(crossword, callback, position) {
-  position = position || 0;
+function solve(crossword, callback, progressCallback) {
 
   if (crossword.isComplete()) {
     callback(crossword);
     return true;
   }
+     
+  var words = crossword.getWords(),
+      candidates = words.filter(function(e) {
+        return e.hasBlanks();
+      }),
+      word = candidates[parseInt(Math.random() * candidates.length)];
   
-   var words = crossword.getWords(),
-       word = words[position];
+  var options = word.getOptions();
+  for (var j = 0, option; option = options[j]; j++) {
+    var newState = word.set(option);
 
-   if (!word) {
-     return false;
-   }
-   
-  /* var words = crossword.getWords(),
-   *     candidates = words.filter(function(e) {
-   *       return e.hasBlanks();
-   *     }),
-   *     word = candidates[parseInt(Math.random() * candidates.length)];
-   * */
-  if (word.hasBlanks()) {
-    var options = word.getOptions();
-    if (options.length > 0) {
-      for (var j = 0, option; option = options[j]; j++) {
-        var newState = word.set(option);
-        if (newState.isValid()) {
-          console.log(newState.toString());
-          if (solve(newState, callback, position + 1) === true) {
-            return true;
-          }          
-        }
+    if (newState.isValid()) {
+      
+      if (progressCallback) {
+        progressCallback(newState);
       }
-    } else {
-      return false;
+
+      if (solve(newState, callback, progressCallback) === true) {
+        return true;
+      }
     }
   }
+  return false;
   
 }
 
