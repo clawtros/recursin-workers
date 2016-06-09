@@ -25,13 +25,13 @@
     <script>
 
      var worker = new Worker("dist/crossword-worker.js"),
-         output = document.getElementById("output");     
+         output = document.getElementById("output"),
+         gridcontent;
      worker.postMessage({"size": 5});
      worker.addEventListener("message", function(message) {
        if (message.data.type === "complete") {
          document.getElementById("title").innerHTML = "Complete!";
          document.getElementById("words").innerHTML = message.data.words.join(", ");
-
        } else {
          document.getElementById("words").innerHTML = message.data.validity;         
        }

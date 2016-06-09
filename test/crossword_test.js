@@ -133,13 +133,18 @@ describe('crossword-test', function() {
 });
 
 describe('wordlist-test', function() {  
+  it('should match exact queries', function() {
+    expect(new WordList(["ccc", "aaa", "bbb"]).matches("aaa")).to.eql(["aaa"]);
+  });
+
   it('should match appropriate terms', function() {
     expect(new WordList(["ccc", "aaa", "bbb"]).matches("a__")).to.eql(["aaa"]);
   });
 
-//  it('should implement remove', function() {
-//    expect(new WordList(["ccc", "aaa", "bbb"]).remove("aaa").matches("___")).to.eql(["ccc", "bbb"]);
-//  });
+  it('should match all terms', function() {
+    expect(new WordList(["ccc", "aaa", "bbb"]).matches("___")).to.eql(["ccc", "aaa", "bbb"]);
+  });
+
 });
 
 describe('solver-test', function() {  
@@ -148,15 +153,6 @@ describe('solver-test', function() {
     solve(cw, function(result) {
       done();
     });
-  });
-
-  it('should be able to solve trivial crosswords with a sufficient wordlist', function(done) {
-    var toSolve = getSmallCrossword();
-    var correct = getSmallCrossword().getWords()[0].set("a");
-    solve(toSolve, function(result) {
-      expect(result.toString()).to.eql(correct.toString());
-      done();
-    })
   });
 
   it('should solve small crosswords', function(done) {
@@ -172,7 +168,6 @@ describe('solver-test', function() {
   it('should fill a tiny word square', function(done) {
     var unsolved = makeSquare(4);
     solve(unsolved, function(result) {
-      console.log(result.toString());
       done();
     });
   });

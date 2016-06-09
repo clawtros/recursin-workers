@@ -20,11 +20,11 @@ function makeSquare(size, wordlist) {
 
   return new jscw.Crossword(cells, across, down,
                             jscw.WordList(
-                              shuffle(
-                                nytwords.filter(function(e) {
-                                  return e.length == size;
-                                })
-                              )
+                                shuffle(
+                                  nytwords.filter(function(e) {
+                                    return e.length == size;
+                                  })
+                                )
                             ));
 }
 
