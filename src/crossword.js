@@ -1,5 +1,4 @@
 var shuffle = require("./shuffle");
-var intersect = require('./intersect');
 
 const Constants = {
   UNPLAYABLE: "_",
@@ -8,6 +7,7 @@ const Constants = {
 }
 
 var memo = {};
+var bads = {};
 
 function Crossword(cells, across, down, wordlist) {
   var size = parseInt(Math.sqrt(cells.length)),
@@ -34,44 +34,48 @@ function Crossword(cells, across, down, wordlist) {
     getWords: function(forDirection) {      
       if (forDirection) {
         return words.filter(function(e) {
-          return e.getDirection() === forDirection;
+          return e.direction === forDirection;
         });
       }
       return words;
     },
-
     getValidity: function() {
       var words = this.getWords(),
-          seen = []
+          seen = [];
+      
       for (var i = 0, word; word = words[i]; i++) {
-        var wl = wordlist.matches(word.get()).length;
-        if (wl == 0 || (!word.hasBlanks() && seen.indexOf(word.get()) > -1)) {
+        var wl = wordlist.matches(word.value).length;
+        if (wl == 0 || (!word.allBlanks && seen.indexOf(word.value) > -1)) {
           return false;
         }
-        seen.push(word.get())
+        seen.push(word.value);
       }
       return true;
-    },
-    
+    },    
     isComplete: function() {
       return cells.indexOf(Constants.UNPLAYABLE) == -1;
     }
   }
 
-
-
   function Word(startId, length, direction) {
+    var value = "",
+        blanks = false,
+        allblanks = true;
+        delta = direction == Constants.ACROSS ? 1 : size;
+    
+    for (var i = 0; i < length; i++) {
+      var cellIndex = startId + i * delta;
+      value += cells[cellIndex];
+      if (cells[cellIndex] === Constants.UNPLAYABLE) {
+        blanks = true;
+      } else {
+        allblanks = false;
+      }      
+    }
+    
     return {
       getOptions: function() {
-        return wordlist.matches(this.get(), false);
-      },
-
-      hasBlanks: function() {
-        return this.get().indexOf("_") > -1;
-      },
-      
-      getDirection: function() {
-        return direction;
+        return wordlist.matches(value);
       },
       
       set: function(word) {
@@ -84,15 +88,10 @@ function Crossword(cells, across, down, wordlist) {
         return new Crossword(newCells, across, down, wordlist);
       },      
 
-      get: function() {
-        var result = "",
-            delta = direction == Constants.ACROSS ? 1 : size;
-        for (var i = 0; i < length; i++) {
-          var cellIndex = startId + i * delta;
-          result += cells[cellIndex];
-        }
-        return result;
-      }
+      hasBlanks:  blanks,
+      allBlanks:  allblanks,
+      direction: direction,
+      value: value,
     }
   }
 }
@@ -149,20 +148,17 @@ function solve(crossword, successCallback, progressCallback, position) {
     successCallback(crossword);
     return true;
   }
-
   var position = position || 0,
       words = crossword.getWords(position % 2 == 0 ? Constants.ACROSS : Constants.DOWN),
       candidates = words.filter(function(e) {
-        return e.hasBlanks()
+        return e.hasBlanks
       }),
       word = candidates[parseInt(Math.random() * candidates.length)],
       options = word.getOptions();
   
   for (var j = 0, option; option = options[j]; j++) {
-    var newState = word.set(option);    
-    if (progressCallback) {
-      progressCallback(newState, j + " " + position);
-    }
+    var newState = word.set(option);
+    progressCallback(newState, j + " " + position);    
     if (newState.getValidity() !== false) {
       if (solve(newState, successCallback, progressCallback, position + 1) === true) {
         return true;

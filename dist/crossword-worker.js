@@ -45,8 +45,8 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	var jscw = __webpack_require__(1);
-	var nytwords = __webpack_require__(3);
-	var shuffle = __webpack_require__(2);
+	var nytwords = __webpack_require__(2);
+	var shuffle = __webpack_require__(3);
 
 	function makeSquare(size, wordlist) {
 	  var cells = [], across = {}, down = {};
@@ -76,9 +76,13 @@
 
 	self.addEventListener("message", function(message) {
 	  jscw.solve(makeSquare(message.data.size), function(result) {
-	    self.postMessage({type: "complete", "grid": result.toString(), words: result.getWords().map(function(e) {
-	      return e.get();
-	    })});
+	    self.postMessage({
+	      type: "complete",
+	      "grid": result.toString(),
+	      words: result.getWords().map(function(e) {
+	        return e.value
+	      })
+	    });
 	  }, function (result, validity) {
 	    self.postMessage({type:"progress", validity: validity, "grid": result.toString()});
 	  });  
@@ -90,8 +94,7 @@
 /* 1 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var shuffle = __webpack_require__(2);
-	var intersect = __webpack_require__(5);
+	var shuffle = __webpack_require__(3);
 
 	const Constants = {
 	  UNPLAYABLE: "_",
@@ -100,6 +103,7 @@
 	}
 
 	var memo = {};
+	var bads = {};
 
 	function Crossword(cells, across, down, wordlist) {
 	  var size = parseInt(Math.sqrt(cells.length)),
@@ -126,44 +130,48 @@
 	    getWords: function(forDirection) {      
 	      if (forDirection) {
 	        return words.filter(function(e) {
-	          return e.getDirection() === forDirection;
+	          return e.direction === forDirection;
 	        });
 	      }
 	      return words;
 	    },
-
 	    getValidity: function() {
 	      var words = this.getWords(),
-	          seen = []
+	          seen = [];
+	      
 	      for (var i = 0, word; word = words[i]; i++) {
-	        var wl = wordlist.matches(word.get()).length;
-	        if (wl == 0 || (!word.hasBlanks() && seen.indexOf(word.get()) > -1)) {
+	        var wl = wordlist.matches(word.value).length;
+	        if (wl == 0 || (!word.allBlanks && seen.indexOf(word.value) > -1)) {
 	          return false;
 	        }
-	        seen.push(word.get())
+	        seen.push(word.value);
 	      }
 	      return true;
-	    },
-	    
+	    },    
 	    isComplete: function() {
 	      return cells.indexOf(Constants.UNPLAYABLE) == -1;
 	    }
 	  }
 
-
-
 	  function Word(startId, length, direction) {
+	    var value = "",
+	        blanks = false,
+	        allblanks = true;
+	        delta = direction == Constants.ACROSS ? 1 : size;
+	    
+	    for (var i = 0; i < length; i++) {
+	      var cellIndex = startId + i * delta;
+	      value += cells[cellIndex];
+	      if (cells[cellIndex] === Constants.UNPLAYABLE) {
+	        blanks = true;
+	      } else {
+	        allblanks = false;
+	      }      
+	    }
+	    
 	    return {
 	      getOptions: function() {
-	        return wordlist.matches(this.get(), false);
-	      },
-
-	      hasBlanks: function() {
-	        return this.get().indexOf("_") > -1;
-	      },
-	      
-	      getDirection: function() {
-	        return direction;
+	        return wordlist.matches(value);
 	      },
 	      
 	      set: function(word) {
@@ -176,15 +184,10 @@
 	        return new Crossword(newCells, across, down, wordlist);
 	      },      
 
-	      get: function() {
-	        var result = "",
-	            delta = direction == Constants.ACROSS ? 1 : size;
-	        for (var i = 0; i < length; i++) {
-	          var cellIndex = startId + i * delta;
-	          result += cells[cellIndex];
-	        }
-	        return result;
-	      }
+	      hasBlanks:  blanks,
+	      allBlanks:  allblanks,
+	      direction: direction,
+	      value: value,
 	    }
 	  }
 	}
@@ -241,20 +244,17 @@
 	    successCallback(crossword);
 	    return true;
 	  }
-
 	  var position = position || 0,
 	      words = crossword.getWords(position % 2 == 0 ? Constants.ACROSS : Constants.DOWN),
 	      candidates = words.filter(function(e) {
-	        return e.hasBlanks()
+	        return e.hasBlanks
 	      }),
 	      word = candidates[parseInt(Math.random() * candidates.length)],
 	      options = word.getOptions();
 	  
 	  for (var j = 0, option; option = options[j]; j++) {
-	    var newState = word.set(option);    
-	    if (progressCallback) {
-	      progressCallback(newState, j + " " + position);
-	    }
+	    var newState = word.set(option);
+	    progressCallback(newState, j + " " + position);    
 	    if (newState.getValidity() !== false) {
 	      if (solve(newState, successCallback, progressCallback, position + 1) === true) {
 	        return true;
@@ -274,31 +274,6 @@
 
 /***/ },
 /* 2 */
-/***/ function(module, exports) {
-
-	
-	module.exports = function (array) {
-	  var currentIndex = array.length, temporaryValue, randomIndex;
-
-	  // While there remain elements to shuffle...
-	  while (0 !== currentIndex) {
-
-	    // Pick a remaining element...
-	    randomIndex = Math.floor(Math.random() * currentIndex);
-	    currentIndex -= 1;
-
-	    // And swap it with the current element.
-	    temporaryValue = array[currentIndex];
-	    array[currentIndex] = array[randomIndex];
-	    array[randomIndex] = temporaryValue;
-	  }
-
-	  return array;
-	}
-
-
-/***/ },
-/* 3 */
 /***/ function(module, exports) {
 
 	module.exports = ['a',
@@ -22112,68 +22087,27 @@
 
 
 /***/ },
-/* 4 */,
-/* 5 */
+/* 3 */
 /***/ function(module, exports) {
 
-	module.exports = intersect;
+	
+	module.exports = function (array) {
+	  var currentIndex = array.length, temporaryValue, randomIndex;
 
-	function many (sets) {
-	  var o = {};
-	  var l = sets.length - 1;
-	  var first = sets[0];
-	  var last = sets[l];
-	  
-	  for(var i in first) o[first[i]] = 0;
-	  
-	  for(var i = 1; i <= l; i++) {
-	    var row = sets[i];
-	    for(var j in row) {
-	      var key = row[j];
-	      if(o[key] === i - 1) o[key] = i;
-	    }
-	  }
-	  
-	  var a = [];
-	  for(var i in last) {
-	    var key = last[i];
-	    if(o[key] === l) a.push(key);
-	  }
-	  
-	  return a;
-	}
+	  // While there remain elements to shuffle...
+	  while (0 !== currentIndex) {
 
-	function intersect (a, b) {
-	  if (!b) return many(a);
+	    // Pick a remaining element...
+	    randomIndex = Math.floor(Math.random() * currentIndex);
+	    currentIndex -= 1;
 
-	  var res = [];
-	  for (var i = 0; i < a.length; i++) {
-	    if (indexOf(b, a[i]) > -1) res.push(a[i]);
+	    // And swap it with the current element.
+	    temporaryValue = array[currentIndex];
+	    array[currentIndex] = array[randomIndex];
+	    array[randomIndex] = temporaryValue;
 	  }
-	  return res;
-	}
 
-	intersect.big = function(a, b) {
-	  if (!b) return many(a);
-	  
-	  var ret = [];
-	  var temp = {};
-	  
-	  for (var i = 0; i < b.length; i++) {
-	    temp[b[i]] = true;
-	  }
-	  for (var i = 0; i < a.length; i++) {
-	    if (temp[a[i]]) ret.push(a[i]);
-	  }
-	  
-	  return ret;
-	}
-
-	function indexOf(arr, el) {
-	  for (var i = 0; i < arr.length; i++) {
-	    if (arr[i] === el) return i;
-	  }
-	  return -1;
+	  return array;
 	}
 
 

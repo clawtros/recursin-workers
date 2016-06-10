@@ -30,9 +30,13 @@ function makeSquare(size, wordlist) {
 
 self.addEventListener("message", function(message) {
   jscw.solve(makeSquare(message.data.size), function(result) {
-    self.postMessage({type: "complete", "grid": result.toString(), words: result.getWords().map(function(e) {
-      return e.get();
-    })});
+    self.postMessage({
+      type: "complete",
+      "grid": result.toString(),
+      words: result.getWords().map(function(e) {
+        return e.value
+      })
+    });
   }, function (result, validity) {
     self.postMessage({type:"progress", validity: validity, "grid": result.toString()});
   });  
