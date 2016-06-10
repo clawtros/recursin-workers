@@ -42,25 +42,6 @@ function getMediumCrossword() {
     WordList(["abc", "def", "ghi", "beh", "adg", "cfi"]));
 }
 
-function shuffle(array) {
-  var currentIndex = array.length, temporaryValue, randomIndex;
-
-  // While there remain elements to shuffle...
-  while (0 !== currentIndex) {
-
-    // Pick a remaining element...
-    randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex -= 1;
-
-    // And swap it with the current element.
-    temporaryValue = array[currentIndex];
-    array[currentIndex] = array[randomIndex];
-    array[randomIndex] = temporaryValue;
-  }
-
-  return array;
-}
-
 function makeSquare(size, wordlist) {
   var cells = [], across = {}, down = {};
   
@@ -92,7 +73,7 @@ describe('crossword-test', function() {
   });
   
   it('words should return cell values', function() {
-    expect(getSmallCrossword().getWords()[0].get()).to.eql("_");    
+    expect(getSmallCrossword().getWords()[0].value).to.eql("_");    
   });
 
   it('should check underscores for completion', function() {
@@ -104,7 +85,7 @@ describe('crossword-test', function() {
   });
 
   it('set words should return new crossword state', function() {
-    expect(getSmallCrossword().getWords()[0].set("a").getWords()[0].get()).to.eql("a");
+    expect(getSmallCrossword().getWords()[0].set("a").getWords()[0].value).to.eql("a");
   });
 
   it('set words should check length', function() {
@@ -112,19 +93,19 @@ describe('crossword-test', function() {
   });
   
   it('medium across words should return cell values', function() {
-    expect(getMediumCrossword().getWords(Constants.ACROSS)[0].get()).to.eql("abc");    
+    expect(getMediumCrossword().getWords(Constants.ACROSS)[0].value).to.eql("abc");    
   });
 
   it('offset medium across words should return cell values', function() {
-    expect(getMediumCrossword().getWords(Constants.ACROSS)[1].get()).to.eql("def");
+    expect(getMediumCrossword().getWords(Constants.ACROSS)[1].value).to.eql("def");
   });
 
   it('should return cell values for medium down words', function() {
-    expect(getMediumCrossword().getWords(Constants.DOWN)[0].get()).to.eql("adg");    
+    expect(getMediumCrossword().getWords(Constants.DOWN)[0].value).to.eql("adg");    
   });
 
   it('medium offset down words should return cell values', function() {
-    expect(getMediumCrossword().getWords(Constants.DOWN)[1].get()).to.eql("beh");    
+    expect(getMediumCrossword().getWords(Constants.DOWN)[1].value).to.eql("beh");    
   });
 
   it('should return all words if direction is unspecified', function() {
@@ -136,7 +117,12 @@ describe('wordlist-test', function() {
   it('should match exact queries', function() {
     expect(new WordList(["ccc", "aaa", "bbb"]).matches("aaa")).to.eql(["aaa"]);
   });
-
+  it('should match approximates', function() {
+    expect(WordList(["abc", "def", "ghi", "beh", "adg", "cfi"]).matches("__g")).to.eql(["adg"])
+    expect(WordList(["abc", "def", "ghi", "beh", "adg", "cfi"]).matches("__h")).to.eql(["beh"])
+    expect(WordList(["abc", "def", "ghi", "beh", "adg", "cfi"]).matches("__i")).to.eql(["ghi", "cfi"])
+  });
+  
   it('should match appropriate terms', function() {
     expect(new WordList(["ccc", "aaa", "bbb"]).matches("a__")).to.eql(["aaa"]);
   });
@@ -152,24 +138,24 @@ describe('solver-test', function() {
     var cw = getMediumCrossword();
     solve(cw, function(result) {
       done();
-    });
+    }, function() {});
   });
 
   it('should solve small crosswords', function(done) {
-    var unsolved = getMediumCrossword().getWords()[0].set("___").getWords()[1].set("___"),
+    var unsolved = getMediumCrossword().getWords()[0].set("___"),
         complete = getMediumCrossword();
     solve(unsolved, function(result) {
       expect(result.toString()).to.eql(complete.toString());
       done();
-    });
+    }, function(result) { console.log(result.toString())});
   });
   
-  
-  it('should fill a tiny word square', function(done) {
-    var unsolved = makeSquare(4);
-    solve(unsolved, function(result) {
-      done();
-    });
-  });
+  /* 
+   * it('should fill a tiny word square', function(done) {
+   *   var unsolved = makeSquare(4);
+   *   solve(unsolved, function(result) {
+   *     done();
+   *   }, function() {});
+   * });*/
  
 });

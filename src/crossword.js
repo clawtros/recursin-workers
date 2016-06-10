@@ -1,4 +1,5 @@
 var shuffle = require("./shuffle");
+var intersect = require('./intersect');
 
 const Constants = {
   UNPLAYABLE: "_",
@@ -44,8 +45,14 @@ function Crossword(cells, across, down, wordlist) {
           seen = [];
       
       for (var i = 0, word; word = words[i]; i++) {
+        if (bads[word.value] === true) {
+          return false;
+        }
+        
         var wl = wordlist.matches(word.value).length;
-        if (wl == 0 || (!word.allBlanks && seen.indexOf(word.value) > -1)) {
+        if (wl == 0 ||
+            (!word.hasBlanks && seen.indexOf(word.value) > -1)) {
+          bads[word.value] = true;
           return false;
         }
         seen.push(word.value);
