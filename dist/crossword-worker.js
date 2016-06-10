@@ -146,8 +146,7 @@
 	        }
 	        
 	        var wl = wordlist.matches(word.value).length;
-	        if (wl == 0 ||
-	            (!word.hasBlanks && seen.indexOf(word.value) > -1)) {
+	        if (wl == 0 || (!word.hasBlanks && seen.indexOf(word.value) > -1)) {
 	          bads[word.value] = true;
 	          return false;
 	        }
@@ -226,14 +225,13 @@
 	            result = [];
 	          }
 	        } else {
-	          var sets = [];
-	          for (var i = 0, l = searchWord.length; i < l; i++) {
-	            if (searchWord[i] !== Constants.UNPLAYABLE) {
-	              sets.push(letterPositionLookup[i][searchWord[i]]);
+	          if (allblanks) {
+	            var sets = [];
+	            for (var i = 0, l = searchWord.length; i < l; i++) {
+	              if (searchWord[i] !== Constants.UNPLAYABLE) {
+	                sets.push(letterPositionLookup[i][searchWord[i]]);
+	              }
 	            }
-	          }
-	          if (sets.length > 0) {
-	            result = intersect(sets);
 	          } else {
 	            result = words;
 	          }
@@ -261,8 +259,8 @@
 	  
 	  for (var j = 0, option; option = options[j]; j++) {
 	    var newState = word.set(option);
-	    progressCallback(newState, j + " " + position);    
 	    if (newState.getValidity() !== false) {
+	      progressCallback(newState, j + " " + position);    
 	      if (solve(newState, successCallback, progressCallback, position + 1) === true) {
 	        return true;
 	      }

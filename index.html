@@ -22,12 +22,22 @@
     <h1 id="title">Working</h1>
     <pre id="output"></pre>
     <p id="words"></p>
+    <p id="debug"></p>
     <script>
 
      var worker = new Worker("dist/crossword-worker.js"),
          output = document.getElementById("output"),
-         gridcontent;
-     worker.postMessage({"size": 5});
+         debug = document.getElementById("debug"),
+         gridcontent,
+         mps = 0,
+         counter = 0,
+         messages = 0,
+         getNow = function() {
+           return Math.floor(new Date() / 1000);
+         },
+         start = getNow(),
+         lasttick;
+     
      worker.addEventListener("message", function(message) {
        if (message.data.type === "complete") {
          document.getElementById("title").innerHTML = "Complete!";
@@ -35,9 +45,19 @@
        } else {
          document.getElementById("words").innerHTML = message.data.validity;         
        }
-
+       var now = getNow();
+       if (now != lasttick) {
+         mps = counter;
+         counter = 0;
+       } else {
+         counter++;
+       }
+       messages++;
+       lasttick = now;
+       debug.innerHTML = mps + ' m/s, avg: ' + Math.floor(messages / (now - start)) + ", total:" + messages;
        output.innerHTML = message.data.grid;
      });
+     worker.postMessage({"size": 6});
     </script>
   </body>
 </html>
