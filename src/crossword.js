@@ -7,19 +7,17 @@ const Constants = {
   DOWN: Symbol("DOWN")
 }
 
-var memo = {};
-var bads = {};
-
-function Crossword(cells, across, down, wordlist) {
+function Crossword(cells, across, down, wordlist, bads) {
   var size = parseInt(Math.sqrt(cells.length)),
       words = [],
+      bads = {},
       i, w;
 
   for (i in across) {
-    words.push(new Word(parseInt(i), across[i].length, Constants.ACROSS));
+    words.push(Word(parseInt(i), across[i].length, Constants.ACROSS));
   }
   for (i in down) {
-    words.push(new Word(parseInt(i), down[i].length, Constants.DOWN));
+    words.push(Word(parseInt(i), down[i].length, Constants.DOWN));
   }
   return {
     toString: function() {
@@ -31,7 +29,9 @@ function Crossword(cells, across, down, wordlist) {
         result += "\n";
       }
       return result;
-    },
+    },    
+    wordList: wordlist,
+    
     getWords: function(forDirection) {      
       if (forDirection) {
         return words.filter(function(e) {
@@ -42,16 +42,16 @@ function Crossword(cells, across, down, wordlist) {
     },
     getValidity: function() {
       var words = this.getWords(),
-          seen = [];
-      
+          seen = [];      
       for (var i = 0, word; word = words[i]; i++) {
         if (bads[word.value] === true) {
           return false;
         }
-        
-        var wl = wordlist.matches(word.value).length;
-        if (wl == 0 || (!word.hasBlanks && seen.indexOf(word.value) > -1)) {
-          bads[word.value] = true;
+        var wl = wordlist.matches(word).length;
+        if (wl === 0 || (!word.hasBlanks && seen.indexOf(word.value) > -1)) {
+          if (wl === 0) {
+            bads[word.value] = true; 
+          }
           return false;
         }
         seen.push(word.value);
@@ -81,7 +81,7 @@ function Crossword(cells, across, down, wordlist) {
     
     return {
       getOptions: function() {
-        return wordlist.matches(value);
+        return wordlist.matches(this);
       },
       
       set: function(word) {
@@ -91,9 +91,8 @@ function Crossword(cells, across, down, wordlist) {
           var cellIndex = startId + i * delta;
           newCells[cellIndex] = word[i];
         }
-        return new Crossword(newCells, across, down, wordlist);
+        return new Crossword(newCells, across, down, wordlist, bads);
       },      
-
       hasBlanks:  blanks,
       allBlanks:  allblanks,
       direction: direction,
@@ -102,12 +101,13 @@ function Crossword(cells, across, down, wordlist) {
   }
 }
 
-function WordList(words) {
+function WordList(words, memo) {
   var lookup = {},
-      letterPositionLookup = {};
-  
+      letterPositionLookup = {},
+      memo = {};
+
   for (var j = 0, word; word = words[j]; j++) {
-    lookup[word] = true;
+    memo[word] = [word];
     for (var i = 0, l = word.length; i < l; i++) {
       letterPositionLookup[i] = letterPositionLookup[i] || {};
       letterPositionLookup[i][word[i]] = letterPositionLookup[i][word[i]] || [];
@@ -116,39 +116,38 @@ function WordList(words) {
   }
   
   return {
-    matches: function(searchWord) {
-      
+    matches: function(searchWord) {      
       var matchIndexes = [],
-          result = [];
-      
-      if (!memo[searchWord]) {
-        if (searchWord.indexOf(Constants.UNPLAYABLE) == -1) {
-          if (lookup[searchWord] === true) {
-            result = [searchWord];
+          result = [],
+          searchValue = searchWord.value;
+      if (!memo[searchValue]) {        
+        if (!searchWord.hasBlanks) {
+          if (lookup[searchValue] === true) {
+            result = [searchValue];
           } else {
             result = [];
           }
         } else {
-          if (allblanks) {
+          if (!searchWord.allBlanks) {
             var sets = [];
-            for (var i = 0, l = searchWord.length; i < l; i++) {
-              if (searchWord[i] !== Constants.UNPLAYABLE) {
-                sets.push(letterPositionLookup[i][searchWord[i]]);
+            for (var i = 0, l = searchValue.length; i < l; i++) {
+              if (searchValue[i] !== Constants.UNPLAYABLE) {
+                sets.push(letterPositionLookup[i][searchValue[i]]);
               }
             }
+            result = intersect.big(sets);
           } else {
             result = words;
           }
         }
-        memo[searchWord] = result;
-      }
-      return memo[searchWord];
+        memo[searchValue] = result;
+      }      
+      return memo[searchValue];
     }
   }
 }
 
-function solve(crossword, successCallback, progressCallback, position) {  
-
+function solve(crossword, successCallback, progressCallback, position) {
   if (crossword.isComplete()) {
     successCallback(crossword);
     return true;
@@ -163,8 +162,8 @@ function solve(crossword, successCallback, progressCallback, position) {
   
   for (var j = 0, option; option = options[j]; j++) {
     var newState = word.set(option);
+    progressCallback(newState, (newState.getWords().map(function(e) { return e.value }).join(", ") ));
     if (newState.getValidity() !== false) {
-      progressCallback(newState, j + " " + position);    
       if (solve(newState, successCallback, progressCallback, position + 1) === true) {
         return true;
       }

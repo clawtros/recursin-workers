@@ -77,11 +77,11 @@ describe('crossword-test', function() {
   });
 
   it('should check underscores for completion', function() {
-    expect(getSmallCrossword().getWords()[0].hasBlanks()).to.eql(true);    
+    expect(getSmallCrossword().getWords()[0].hasBlanks).to.eql(true);    
   });
 
   it('should return false without underscores', function() {
-    expect(getMediumCrossword().getWords(Constants.DOWN)[1].hasBlanks()).to.eql(false);    
+    expect(getMediumCrossword().getWords(Constants.DOWN)[1].hasBlanks).to.eql(false);    
   });
 
   it('set words should return new crossword state', function() {
@@ -115,20 +115,19 @@ describe('crossword-test', function() {
 
 describe('wordlist-test', function() {  
   it('should match exact queries', function() {
-    expect(new WordList(["ccc", "aaa", "bbb"]).matches("aaa")).to.eql(["aaa"]);
+    expect(WordList(["ccc", "aaa", "bbb"]).matches({value: "aaa", hasBlanks: false })).to.eql(["aaa"]);
   });
+
   it('should match approximates', function() {
-    expect(WordList(["abc", "def", "ghi", "beh", "adg", "cfi"]).matches("__g")).to.eql(["adg"])
-    expect(WordList(["abc", "def", "ghi", "beh", "adg", "cfi"]).matches("__h")).to.eql(["beh"])
-    expect(WordList(["abc", "def", "ghi", "beh", "adg", "cfi"]).matches("__i")).to.eql(["ghi", "cfi"])
+    expect(WordList(["abc", "def", "ghi", "beh", "adg", "cfi"]).matches({value: "__i", hasBlanks: true})).to.eql(["ghi", "cfi"])
   });
   
   it('should match appropriate terms', function() {
-    expect(new WordList(["ccc", "aaa", "bbb"]).matches("a__")).to.eql(["aaa"]);
+    expect(new WordList(["ccc", "aaa", "bbb"]).matches({value: "a__", hasBlanks: true})).to.eql(["aaa"]);
   });
 
   it('should match all terms', function() {
-    expect(new WordList(["ccc", "aaa", "bbb"]).matches("___")).to.eql(["ccc", "aaa", "bbb"]);
+    expect(new WordList(["ccc", "aaa", "bbb"]).matches({value: "___", allBlanks: true, hasBlanks: true})).to.eql(["ccc", "aaa", "bbb"]);
   });
 
 });
@@ -144,18 +143,21 @@ describe('solver-test', function() {
   it('should solve small crosswords', function(done) {
     var unsolved = getMediumCrossword().getWords()[0].set("___"),
         complete = getMediumCrossword();
+
     solve(unsolved, function(result) {
       expect(result.toString()).to.eql(complete.toString());
       done();
-    }, function(result) { console.log(result.toString())});
+    }, function() {
+    });
   });
   
-  /* 
-   * it('should fill a tiny word square', function(done) {
-   *   var unsolved = makeSquare(4);
-   *   solve(unsolved, function(result) {
-   *     done();
-   *   }, function() {});
-   * });*/
+  
+  it('should fill a tiny word square', function(done) {
+    var unsolved = makeSquare(4);
+    solve(unsolved, function(result) {
+      done();
+    }, function() {
+    });
+  });
  
 });

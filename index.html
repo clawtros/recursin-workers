@@ -8,21 +8,40 @@
        letter-spacing: 5px;
        font-size: 4em;
      }
+     
      body {
        font-family: monospace;
        text-align: center;
+       display: flex;
      }
 
+     body, html {
+       height: 100%;
+       margin: 0;
+       background: rgb(241, 241, 241);
+     }
+     main {
+       margin: auto;
+       background: white;
+       padding: 20px 40px;
+       box-shadow: 0 8px 1px -4px #ccc;
+     }
      #words {
        text-transform: uppercase;
+     }
+     #title {
+       margin: auto;
      }
     </style>
   </head>
   <body>
-    <h1 id="title">Working</h1>
-    <pre id="output"></pre>
-    <p id="words"></p>
-    <p id="debug"></p>
+    <main>
+      <h1 id="title">Working</h1>
+
+      <pre id="output"></pre>
+      <p id="words"></p>
+      <p id="debug"></p>
+    </main>
     <script>
 
      var worker = new Worker("dist/crossword-worker.js"),
@@ -33,10 +52,11 @@
          counter = 0,
          messages = 0,
          getNow = function() {
-           return Math.floor(new Date() / 1000);
+           return Math.floor(new Date() / 33);
          },
          start = getNow(),
-         lasttick;
+         lasttick,
+         elapsed;
      
      worker.addEventListener("message", function(message) {
        if (message.data.type === "complete") {
@@ -46,18 +66,28 @@
          document.getElementById("words").innerHTML = message.data.validity;         
        }
        var now = getNow();
+       elapsed = now - start;
+
        if (now != lasttick) {
-         mps = counter;
+         mps = counter * (1000 / 33) ;
          counter = 0;
        } else {
          counter++;
        }
        messages++;
        lasttick = now;
-       debug.innerHTML = mps + ' m/s, avg: ' + Math.floor(messages / (now - start)) + ", total:" + messages;
-       output.innerHTML = message.data.grid;
+       gridcontent = message.data.grid;
+       debug.innerHTML = 'm/s: ' + Math.floor(mps) + ', avg m/s: ' + Math.floor((messages * (1000 / 33)) / (now - start)) + ", total: " + messages + ", elapsed: " + Math.floor(elapsed * (1000 / 33)) + 'ms';
+
      });
-     worker.postMessage({"size": 6});
+     
+     function draw() {
+       requestAnimationFrame(draw);
+       output.innerHTML = gridcontent;         
+     }
+     draw();
+     
+     worker.postMessage({"size": 5});
     </script>
   </body>
 </html>
