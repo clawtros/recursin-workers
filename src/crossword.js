@@ -109,9 +109,10 @@ function WordList(words, memo) {
   for (var j = 0, word; word = words[j]; j++) {
     memo[word] = [word];
     for (var i = 0, l = word.length; i < l; i++) {
-      letterPositionLookup[i] = letterPositionLookup[i] || {};
-      letterPositionLookup[i][word[i]] = letterPositionLookup[i][word[i]] || [];
-      letterPositionLookup[i][word[i]].push(word);
+      letterPositionLookup[word.length] = letterPositionLookup[word.length] || {};
+      letterPositionLookup[word.length][i] = letterPositionLookup[word.length][i] || {};
+      letterPositionLookup[word.length][i][word[i]] = letterPositionLookup[word.length][i][word[i]] || [];
+      letterPositionLookup[word.length][i][word[i]].push(word);
     }
   }
   
@@ -120,6 +121,7 @@ function WordList(words, memo) {
       var matchIndexes = [],
           result = [],
           searchValue = searchWord.value;
+
       if (!memo[searchValue]) {        
         if (!searchWord.hasBlanks) {
           if (lookup[searchValue] === true) {
@@ -132,16 +134,16 @@ function WordList(words, memo) {
             var sets = [];
             for (var i = 0, l = searchValue.length; i < l; i++) {
               if (searchValue[i] !== Constants.UNPLAYABLE) {
-                sets.push(letterPositionLookup[i][searchValue[i]]);
+                sets.push(letterPositionLookup[searchValue.length][i][searchValue[i]]);
               }
             }
             result = intersect.big(sets);
           } else {
             result = words;
           }
-        }
+        }  
         memo[searchValue] = result;
-      }      
+      }
       return memo[searchValue];
     }
   }
@@ -152,18 +154,21 @@ function solve(crossword, successCallback, progressCallback, position) {
     successCallback(crossword);
     return true;
   }
+  
   var position = position || 0,
       words = crossword.getWords(position % 2 == 0 ? Constants.ACROSS : Constants.DOWN),
       candidates = words.filter(function(e) {
         return e.hasBlanks
       }),
-      word = candidates[parseInt(Math.random() * candidates.length)],
+      word = candidates.sort(function(a, b) { return a.getOptions().length > b.getOptions().length })[0],
       options = word.getOptions();
   
   for (var j = 0, option; option = options[j]; j++) {
     var newState = word.set(option);
-    progressCallback(newState, (newState.getWords().map(function(e) { return e.value }).join(", ") ));
+    progressCallback(newState, (newState.getWords().map(function(e) {
+      return e.value  }).join("\t\t") ));
     if (newState.getValidity() !== false) {
+    
       if (solve(newState, successCallback, progressCallback, position + 1) === true) {
         return true;
       }

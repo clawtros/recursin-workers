@@ -45,8 +45,8 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	var jscw = __webpack_require__(1);
-	var nytwords = __webpack_require__(2);
-	var shuffle = __webpack_require__(3);
+	var nytwords = __webpack_require__(4);
+	var shuffle = __webpack_require__(2);
 
 	function makeSquare(size, wordlist) {
 	  var cells = [], across = {}, down = {};
@@ -66,36 +66,110 @@
 
 	  return new jscw.Crossword(cells, across, down,
 	                            jscw.WordList(
-	                                shuffle(
-	                                  nytwords.filter(function(e) {
-	                                    return e.length == size;
-	                                  })
-	                                )
+	                              shuffle(
+	                                nytwords.filter(function(e) {
+	                                  return e.length == size;
+	                                })
+	                              )
 	                            ));
 	}
 
-	self.addEventListener("message", function(message) {
-	  jscw.solve(makeSquare(message.data.size), function(result) {
-	    self.postMessage({
-	      type: "complete",
-	      "grid": result.toString(),
-	      words: result.getWords().map(function(e) {
-	        return e.value
-	      })
-	    });
-	  }, function (result, validity) {
-	    self.postMessage({type:"progress", validity: validity, "grid": result.toString()});
-	  });  
-	})
+	function makeGrid(cells) {
+	  var across = {}, down = {}, size = parseInt(Math.sqrt(cells.length)),
+	      rows = [], columns = [];
 	  
+
+	  for (var i = 0; i < size; i++) {
+	    var row = cells.slice(size * i, size * i + size);
+	    rows.push(row);
+	  }
+
+	  var r, offset = 0;
+	  for (var ri = 0, r; r = rows[ri]; ri++) {
+	    var currentword;
+	    
+	    for (var i = 0; i < r.length; i++) {
+	      if (r[i] === "_") {
+	        if (currentword === undefined) {
+	          currentword = { offset: offset, length: 0 } 
+	        }
+	        currentword.length = currentword.length + 1;
+	      }       
+	      if (currentword !== undefined &&
+	          (r[i] == "#" || i == (r.length - 1)) &&
+	          currentword.length > 0) {
+	            across[currentword.offset] = { length: currentword.length };
+	            currentword = undefined;
+	      }
+
+	      offset = offset + 1;
+	    }
+	  }
+	  
+	  for (var i = 0; i < size; i++) {
+	    var columnIndices = [];
+	    for (var j = 0; j < size; j++) {
+	      columnIndices.push(j * size + i);
+	    }    
+	    columns.push(columnIndices.map(function(e) { return cells[e] }));
+	  }
+	  console.log(columns)
+	  var c, offset = 0, colnum = 0;
+	  for (var colnum = 0, c; c = columns[colnum]; colnum++) {
+	    var currentword, offset = size * colnum;
+	    for (var i = 0; i < c.length; i++) {
+	      if (c[i] == "_") {
+	        if (currentword === undefined) {
+	          currentword = { offset: colnum + i * size , length: 0 } 
+	        }
+	        currentword.length = currentword.length + 1;
+	      }
+
+	      if (currentword !== undefined && (c[i] == "#" || i == (c.length - 1)) && currentword.length > 0) {
+	        down[currentword.offset] = { length: currentword.length }
+	        currentword = undefined;
+	      }
+	      
+	    }
+
+	  }
+	  console.log(across, down);
+	  
+	  return new jscw.Crossword(cells, across, down, jscw.WordList(shuffle(nytwords)));
+	}
+
+
+	function onSuccess(result) {
+	  self.postMessage({
+	    type: "complete",
+	    "grid": result.toString(),
+	    words: result.getWords().map(function(e) {
+	      return e.value
+	    })
+	  });
+	}
+
+	function onProgress(result, validity) {
+	  self.postMessage({type:"progress", validity: validity, "grid": result.toString()});
+	}
+
+	self.addEventListener("message", function(message) {
+	  if (message.data.size) {
+	    jscw.solve(makeSquare(message.data.size), onSuccess, onProgress);  
+	  } else if (message.data.cells) {
+	    jscw.solve(makeGrid(message.data.cells), onSuccess, onProgress);    
+	  }
+
+	});
+
 
 
 /***/ },
 /* 1 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var shuffle = __webpack_require__(3);
-	var intersect = __webpack_require__(4);
+	var shuffle = __webpack_require__(2);
+	var intersect = __webpack_require__(3);
 
 	const Constants = {
 	  UNPLAYABLE: "_",
@@ -205,9 +279,10 @@
 	  for (var j = 0, word; word = words[j]; j++) {
 	    memo[word] = [word];
 	    for (var i = 0, l = word.length; i < l; i++) {
-	      letterPositionLookup[i] = letterPositionLookup[i] || {};
-	      letterPositionLookup[i][word[i]] = letterPositionLookup[i][word[i]] || [];
-	      letterPositionLookup[i][word[i]].push(word);
+	      letterPositionLookup[word.length] = letterPositionLookup[word.length] || {};
+	      letterPositionLookup[word.length][i] = letterPositionLookup[word.length][i] || {};
+	      letterPositionLookup[word.length][i][word[i]] = letterPositionLookup[word.length][i][word[i]] || [];
+	      letterPositionLookup[word.length][i][word[i]].push(word);
 	    }
 	  }
 	  
@@ -216,6 +291,7 @@
 	      var matchIndexes = [],
 	          result = [],
 	          searchValue = searchWord.value;
+
 	      if (!memo[searchValue]) {        
 	        if (!searchWord.hasBlanks) {
 	          if (lookup[searchValue] === true) {
@@ -228,16 +304,16 @@
 	            var sets = [];
 	            for (var i = 0, l = searchValue.length; i < l; i++) {
 	              if (searchValue[i] !== Constants.UNPLAYABLE) {
-	                sets.push(letterPositionLookup[i][searchValue[i]]);
+	                sets.push(letterPositionLookup[searchValue.length][i][searchValue[i]]);
 	              }
 	            }
 	            result = intersect.big(sets);
 	          } else {
 	            result = words;
 	          }
-	        }
+	        }  
 	        memo[searchValue] = result;
-	      }      
+	      }
 	      return memo[searchValue];
 	    }
 	  }
@@ -248,18 +324,21 @@
 	    successCallback(crossword);
 	    return true;
 	  }
+	  
 	  var position = position || 0,
 	      words = crossword.getWords(position % 2 == 0 ? Constants.ACROSS : Constants.DOWN),
 	      candidates = words.filter(function(e) {
 	        return e.hasBlanks
 	      }),
-	      word = candidates[parseInt(Math.random() * candidates.length)],
+	      word = candidates.sort(function(a, b) { return a.getOptions().length > b.getOptions().length })[0],
 	      options = word.getOptions();
 	  
 	  for (var j = 0, option; option = options[j]; j++) {
 	    var newState = word.set(option);
-	    progressCallback(newState, (newState.getWords().map(function(e) { return e.value }).join(", ") ));
+	    progressCallback(newState, (newState.getWords().map(function(e) {
+	      return e.value  }).join("\t\t") ));
 	    if (newState.getValidity() !== false) {
+	    
 	      if (solve(newState, successCallback, progressCallback, position + 1) === true) {
 	        return true;
 	      }
@@ -278,6 +357,96 @@
 
 /***/ },
 /* 2 */
+/***/ function(module, exports) {
+
+	
+	module.exports = function (array) {
+	  var currentIndex = array.length, temporaryValue, randomIndex;
+
+	  // While there remain elements to shuffle...
+	  while (0 !== currentIndex) {
+
+	    // Pick a remaining element...
+	    randomIndex = Math.floor(Math.random() * currentIndex);
+	    currentIndex -= 1;
+
+	    // And swap it with the current element.
+	    temporaryValue = array[currentIndex];
+	    array[currentIndex] = array[randomIndex];
+	    array[randomIndex] = temporaryValue;
+	  }
+
+	  return array;
+	}
+
+
+/***/ },
+/* 3 */
+/***/ function(module, exports) {
+
+	module.exports = intersect;
+
+	function many (sets) {
+	  var o = {};
+	  var l = sets.length - 1;
+	  var first = sets[0];
+	  var last = sets[l];
+	  
+	  for(var i in first) o[first[i]] = 0;
+	  
+	  for(var i = 1; i <= l; i++) {
+	    var row = sets[i];
+	    for(var j in row) {
+	      var key = row[j];
+	      if(o[key] === i - 1) o[key] = i;
+	    }
+	  }
+	  
+	  var a = [];
+	  for(var i in last) {
+	    var key = last[i];
+	    if(o[key] === l) a.push(key);
+	  }
+	  
+	  return a;
+	}
+
+	function intersect (a, b) {
+	  if (!b) return many(a);
+
+	  var res = [];
+	  for (var i = 0; i < a.length; i++) {
+	    if (indexOf(b, a[i]) > -1) res.push(a[i]);
+	  }
+	  return res;
+	}
+
+	intersect.big = function(a, b) {
+	  if (!b) return many(a);
+	  
+	  var ret = [];
+	  var temp = {};
+	  
+	  for (var i = 0; i < b.length; i++) {
+	    temp[b[i]] = true;
+	  }
+	  for (var i = 0; i < a.length; i++) {
+	    if (temp[a[i]]) ret.push(a[i]);
+	  }
+	  
+	  return ret;
+	}
+
+	function indexOf(arr, el) {
+	  for (var i = 0; i < arr.length; i++) {
+	    if (arr[i] === el) return i;
+	  }
+	  return -1;
+	}
+
+
+/***/ },
+/* 4 */
 /***/ function(module, exports) {
 
 	module.exports = ['a',
@@ -22088,96 +22257,6 @@
 	'zurich',
 	'zw',
 	'zztop'];
-
-
-/***/ },
-/* 3 */
-/***/ function(module, exports) {
-
-	
-	module.exports = function (array) {
-	  var currentIndex = array.length, temporaryValue, randomIndex;
-
-	  // While there remain elements to shuffle...
-	  while (0 !== currentIndex) {
-
-	    // Pick a remaining element...
-	    randomIndex = Math.floor(Math.random() * currentIndex);
-	    currentIndex -= 1;
-
-	    // And swap it with the current element.
-	    temporaryValue = array[currentIndex];
-	    array[currentIndex] = array[randomIndex];
-	    array[randomIndex] = temporaryValue;
-	  }
-
-	  return array;
-	}
-
-
-/***/ },
-/* 4 */
-/***/ function(module, exports) {
-
-	module.exports = intersect;
-
-	function many (sets) {
-	  var o = {};
-	  var l = sets.length - 1;
-	  var first = sets[0];
-	  var last = sets[l];
-	  
-	  for(var i in first) o[first[i]] = 0;
-	  
-	  for(var i = 1; i <= l; i++) {
-	    var row = sets[i];
-	    for(var j in row) {
-	      var key = row[j];
-	      if(o[key] === i - 1) o[key] = i;
-	    }
-	  }
-	  
-	  var a = [];
-	  for(var i in last) {
-	    var key = last[i];
-	    if(o[key] === l) a.push(key);
-	  }
-	  
-	  return a;
-	}
-
-	function intersect (a, b) {
-	  if (!b) return many(a);
-
-	  var res = [];
-	  for (var i = 0; i < a.length; i++) {
-	    if (indexOf(b, a[i]) > -1) res.push(a[i]);
-	  }
-	  return res;
-	}
-
-	intersect.big = function(a, b) {
-	  if (!b) return many(a);
-	  
-	  var ret = [];
-	  var temp = {};
-	  
-	  for (var i = 0; i < b.length; i++) {
-	    temp[b[i]] = true;
-	  }
-	  for (var i = 0; i < a.length; i++) {
-	    if (temp[a[i]]) ret.push(a[i]);
-	  }
-	  
-	  return ret;
-	}
-
-	function indexOf(arr, el) {
-	  for (var i = 0; i < arr.length; i++) {
-	    if (arr[i] === el) return i;
-	  }
-	  return -1;
-	}
 
 
 /***/ }

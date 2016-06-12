@@ -6,7 +6,7 @@
     <style>
      pre {
        letter-spacing: 5px;
-       font-size: 4em;
+       font-size: 2em;
      }
      
      body {
@@ -21,6 +21,8 @@
        background: rgb(241, 241, 241);
      }
      main {
+       width: 720px;
+       max-width: 100%;
        margin: auto;
        background: white;
        padding: 20px 40px;
@@ -56,14 +58,20 @@
          },
          start = getNow(),
          lasttick,
-         elapsed;
+         elapsed,
+         cellsA = '____##____#________#_____#________#_____#_______________#______#___###___________#________###___#___#____##___________##____#___#___###________#___________###___#______#_______________#_____#________#_____#________#____##____'.split(""),
+
+         cellsB = '___###___###_______#_____#________#_____#___________#_______###___###___###_______#___________#_____#_______###___###_______#_____#___________#_______###___###___###_______#___________#_____#________#_____#_______###___###___'.split(""),
+
+         cellsC = '___#_________________#_____#_________________#___'.split("");
+
      
      worker.addEventListener("message", function(message) {
        if (message.data.type === "complete") {
          document.getElementById("title").innerHTML = "Complete!";
          document.getElementById("words").innerHTML = message.data.words.join(", ");
        } else {
-         document.getElementById("words").innerHTML = message.data.validity;         
+         document.getElementById("words").innerHTML = message.data.validity;
        }
        var now = getNow();
        elapsed = now - start;
@@ -76,7 +84,7 @@
        }
        messages++;
        lasttick = now;
-       gridcontent = message.data.grid;
+       gridcontent = message.data.grid.replace(/#/g ,"■");
        debug.innerHTML = 'm/s: ' + Math.floor(mps) + ', avg m/s: ' + Math.floor((messages * (1000 / 33)) / (now - start)) + ", total: " + messages + ", elapsed: " + Math.floor(elapsed * (1000 / 33)) + 'ms';
 
      });
@@ -87,7 +95,8 @@
      }
      draw();
      
-     worker.postMessage({"size": 5});
+     //worker.postMessage({"size": 6});
+     worker.postMessage({ cells: cellsC })
     </script>
   </body>
 </html>
