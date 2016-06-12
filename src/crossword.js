@@ -1,4 +1,3 @@
-var shuffle = require("./shuffle");
 var intersect = require('./intersect');
 
 const Constants = {
@@ -152,23 +151,25 @@ function WordList(words, memo) {
 function solve(crossword, successCallback, progressCallback, position) {
   if (crossword.isComplete()) {
     successCallback(crossword);
-    return true;
+    return;
   }
   
   var position = position || 0,
       words = crossword.getWords(position % 2 == 0 ? Constants.ACROSS : Constants.DOWN),
       candidates = words.filter(function(e) {
-        return e.hasBlanks
+        return e.getOptions().length > 1
       }),
-      word = candidates.sort(function(a, b) { return a.getOptions().length > b.getOptions().length })[0],
-      options = word.getOptions();
+      sorted = candidates.sort(function(a, b) { return a.getOptions().length - b.getOptions().length }),
+      word = sorted[0];
+  if (!word) return false
+  var options = word.getOptions();
   
   for (var j = 0, option; option = options[j]; j++) {
     var newState = word.set(option);
-    progressCallback(newState, (newState.getWords().map(function(e) {
-      return e.value  }).join("\t\t") ));
     if (newState.getValidity() !== false) {
-    
+      
+      progressCallback(newState, (newState.getWords().map(function(e) {
+        return e.value  }).join(", ") ));
       if (solve(newState, successCallback, progressCallback, position + 1) === true) {
         return true;
       }
