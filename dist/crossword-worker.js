@@ -321,18 +321,18 @@
 	function solve(crossword, successCallback, progressCallback, position) {
 	  if (crossword.isComplete()) {
 	    successCallback(crossword);
-	    return;
+	    return true;
 	  }
 	  
 	  var position = position || 0,
 	      words = crossword.getWords(position % 2 == 0 ? Constants.ACROSS : Constants.DOWN),
 	      candidates = words.filter(function(e) {
-	        return e.getOptions().length > 1
-	      }),
-	      sorted = candidates.sort(function(a, b) { return a.getOptions().length - b.getOptions().length }),
-	      word = sorted[0];
-	  if (!word) return false
-	  var options = word.getOptions();
+	        return e.hasBlanks
+	      });
+	  
+	  candidates.sort(function(a, b) { return a.getOptions().length - b.getOptions().length });
+	  var word = candidates[0],
+	      options = word.getOptions();
 	  
 	  for (var j = 0, option; option = options[j]; j++) {
 	    var newState = word.set(option);
