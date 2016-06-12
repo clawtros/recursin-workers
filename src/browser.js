@@ -1,5 +1,6 @@
 var jscw = require("./crossword");
 var nytwords = require('./nytwords');
+var nytwords2 = require('./nyt2');
 var shuffle = require('./shuffle');
 
 function makeSquare(size, wordlist) {
@@ -89,7 +90,7 @@ function makeGrid(cells) {
   }
   console.log(across, down);
   
-  return new jscw.Crossword(cells, across, down, jscw.WordList(shuffle(nytwords)));
+  return new jscw.Crossword(cells, across, down, jscw.WordList(shuffle(nytwords2)));
 }
 
 
