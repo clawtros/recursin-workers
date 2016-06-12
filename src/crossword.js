@@ -160,16 +160,14 @@ function solve(crossword, successCallback, progressCallback, position) {
         return e.hasBlanks
       });
   
-  candidates.sort(function(a, b) { return a.getOptions().length - b.getOptions().length });
+  candidates.sort(function(a, b) { return a.getOptions().length - b.getOptions().length }); // Kinda like Minion's SDF maybe?
   var word = candidates[0],
       options = word.getOptions();
   
   for (var j = 0, option; option = options[j]; j++) {
     var newState = word.set(option);
     if (newState.getValidity() !== false) {
-      
-      progressCallback(newState, (newState.getWords().map(function(e) {
-        return e.value  }).join(", ") ));
+      progressCallback(newState, (newState.getWords().map(function(e) { return e.value  }).join(", ") ));
       if (solve(newState, successCallback, progressCallback, position + 1) === true) {
         return true;
       }
