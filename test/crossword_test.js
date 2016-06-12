@@ -152,7 +152,7 @@ describe('solver-test', function() {
   });
   
   
-  it('should fill a tiny word square', function(done) {
+  it('should fill a tiny word square within 2 seconds', function(done) {
     var unsolved = makeSquare(4);
     solve(unsolved, function(result) {
       done();
