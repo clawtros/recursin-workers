@@ -68,7 +68,6 @@ function makeGrid(cells) {
     }    
     columns.push(columnIndices.map(function(e) { return cells[e] }));
   }
-  console.log(columns)
   var c, offset = 0, colnum = 0;
   for (var colnum = 0, c; c = columns[colnum]; colnum++) {
     var currentword, offset = size * colnum;
@@ -88,8 +87,6 @@ function makeGrid(cells) {
     }
 
   }
-  console.log(across, down);
-  
   return new jscw.Crossword(cells, across, down, jscw.WordList(shuffle(nytwords2)));
 }
 

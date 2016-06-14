@@ -114,7 +114,6 @@
 	    }    
 	    columns.push(columnIndices.map(function(e) { return cells[e] }));
 	  }
-	  console.log(columns)
 	  var c, offset = 0, colnum = 0;
 	  for (var colnum = 0, c; c = columns[colnum]; colnum++) {
 	    var currentword, offset = size * colnum;
@@ -134,8 +133,6 @@
 	    }
 
 	  }
-	  console.log(across, down);
-	  
 	  return new jscw.Crossword(cells, across, down, jscw.WordList(shuffle(nytwords2)));
 	}
 
@@ -271,7 +268,7 @@
 	  }
 	}
 
-	function WordList(words, memo) {
+	function WordList(words, definitions) {
 	  var lookup = {},
 	      letterPositionLookup = {},
 	      memo = {};
@@ -319,27 +316,33 @@
 	  }
 	}
 
-	function solve(crossword, successCallback, progressCallback, position) {
+	function getCandidate(words) {
+	  var minLength = 100000000,
+	      candidate;
+	  for (var i = 0, l = words.length; i < l; i++) {
+	    if (words[i].getOptions().length < minLength && words[i].hasBlanks) {
+	      candidate = words[i];
+	      minLength = words[i].getOptions().length;
+	    }
+	  }
+	  return candidate;
+	}
+
+	function solve(crossword, successCallback, progressCallback) {
+
 	  if (crossword.isComplete()) {
 	    successCallback(crossword);
 	    return true;
 	  }
 	  
-	  var position = position || 0,
-	      words = crossword.getWords(position % 2 == 0 ? Constants.ACROSS : Constants.DOWN),
-	      candidates = words.filter(function(e) {
-	        return e.hasBlanks
-	      });
-	  
-	  candidates.sort(function(a, b) { return a.getOptions().length - b.getOptions().length }); // Kinda like Minion's SDF maybe?
-	  var word = candidates[0],
+	  var word = getCandidate(crossword.getWords()),  
 	      options = word.getOptions();
 	  
 	  for (var j = 0, option; option = options[j]; j++) {
 	    var newState = word.set(option);
+	    progressCallback(newState, (newState.getWords().map(function(e) { return e.value  }).join(", ") ));
 	    if (newState.getValidity() !== false) {
-	      progressCallback(newState, (newState.getWords().map(function(e) { return e.value  }).join(", ") ));
-	      if (solve(newState, successCallback, progressCallback, position + 1) === true) {
+	      if (solve(newState, successCallback, progressCallback) === true) {
 	        return true;
 	      }
 	    } 
@@ -353,6 +356,16 @@
 	  Constants: Constants,
 	  solve: solve
 	}
+
+	/* 
+	 * var words = crossword.getWords(),
+	 *     candidates = words.filter(function(e) {
+	 *       return e.hasBlanks
+	 *     }),
+	 *     ml = Math.min.apply(this, candidates.map(function(e) { return e.getOptions().length }))
+	 * filtered = candidates.filter(function(e) { return e.getOptions().length === ml })
+	 * word = filtered[parseInt(Math.random() * filtered.length)],
+	 *     options = word.getOptions();*/
 
 
 /***/ },
