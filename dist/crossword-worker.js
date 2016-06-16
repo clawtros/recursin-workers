@@ -166,6 +166,8 @@
 /* 1 */
 /***/ function(module, exports, __webpack_require__) {
 
+	'use strict';
+
 	var intersect = __webpack_require__(4);
 
 	const Constants = {
@@ -233,7 +235,7 @@
 	  function Word(startId, length, direction) {
 	    var value = "",
 	        blanks = false,
-	        allblanks = true;
+	        allblanks = true,
 	        delta = direction == Constants.ACROSS ? 1 : size;
 	    
 	    for (var i = 0; i < length; i++) {

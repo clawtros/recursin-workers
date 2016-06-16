@@ -1,3 +1,5 @@
+'use strict';
+
 var intersect = require('./intersect');
 
 const Constants = {
@@ -65,7 +67,7 @@ function Crossword(cells, across, down, wordlist, bads) {
   function Word(startId, length, direction) {
     var value = "",
         blanks = false,
-        allblanks = true;
+        allblanks = true,
         delta = direction == Constants.ACROSS ? 1 : size;
     
     for (var i = 0; i < length; i++) {
