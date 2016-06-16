@@ -3,68 +3,11 @@
   <head>
     <title></title>
     <meta charset="utf-8" />
-    <style>
-     pre {
-       letter-spacing: 5px;
-       font-size: 2em;
-     }
-     #finished {
-       display: inline-block;
-       border-width: 1px 0 0 1px;
-       border-style: solid;
-     }
-     body {
-       font-family: monospace;
-       text-align: center;
-       display: flex;
-     }
-
-     body, html {
-       height: 100%;
-       margin: 0;
-       background: rgb(241, 241, 241);
-     }
-     main {
-       width: 960px;
-       max-width: 100%;
-       margin: auto;
-       background: white;
-       padding: 20px;
-       box-shadow: 0 8px 4px -4px #ccc;
-     }
-     #words {
-       text-transform: uppercase;
-     }
-     #title {
-       margin: 10px 0;
-       padding: 0;
-       font-size: 2em;
-     }
-     .blank {
-       background-color: #222;
-       color: #222;
-     }
-     #finished {
-       margin-bottom: 30px;
-     }
-     span.cell {
-       height: 4vmin;
-       width: 4vmin;
-       display: inline-block;
-       text-align: center;
-       line-height: 4vmin;
-       text-transform: uppercase;
-       font-size: 3vmin;
-       border-width: 0 1px 1px 0;
-       border-style: solid;
-     }
-    </style>
+    <link rel="stylesheet" href="dist/style.css">
   </head>
   <body>
     <main>
-
-      <pre id="output"></pre>
-      
+      <pre id="output"></pre>      
       <div id="finished"></div>
       <p id="words"></p>
       <p id="debug"></p>
@@ -77,8 +20,10 @@
          mps = 0,
          counter = 0,
          messages = 0,
+         pollingRate = 33,
+         toSeconds = (1000 / pollingRate),
          getNow = function() {
-           return Math.floor(new Date() / 33);
+           return Math.floor(new Date() / pollingRate);
          },
          start = getNow(),
          lasttick,
@@ -92,8 +37,7 @@
            '____##___##_________#____#_________#_________________#______###____#____###______#____#________#_____#_______#_____#_______#_____#________#____#______###____#____###______#_________________#_________#____#_________##___##____'.split(""),
            '___#____#_________#____#______________#___________#_____####____##_______________##_______####_____##____#_____________#____##_____####_______##_______________##____####_____#___________#______________#____#_________#____#___'.split(""),
            '_____#____#_________#____#______________________#____#______###___##____###_____________##_____#____#_______##_____##_______#____#_____##_____________###____##___###______#____#______________________#____#_________#____#_____'.split("")
-         ],
-         grid = "";
+         ];
      
      worker.addEventListener("message", function(message) {
        if (message.data.type === "complete") {
@@ -101,19 +45,16 @@
          output.innerHTML = "";
          document.getElementById("finished").innerHTML = grid.split("\n").map(function(e) { return '<div class="row">'+e.split("").map(function(i) { return '<span class="cell'+ (i === '#' ? " blank": "") +'">'+i+'</span>' }).join("")+'</div>'} ).join("\n");       
 
-
        } else {
-         document.getElementById("words").innerHTML = message.data.validity;
-  
+         document.getElementById("words").innerHTML = message.data.validity;  
          output.innerHTML = message.data.grid.replace(/#/g, " "); //.replace(/[a-z]/g, "#");
-
        }
        
        var now = getNow();
        elapsed = now - start;
 
        if (now != lasttick) {
-         mps = counter * (1000 / 33) ;
+         mps = counter * toSeconds ;
          counter = 0;
        } else {
          counter++;
@@ -121,7 +62,7 @@
        messages++;
        lasttick = now;
 
-       debug.innerHTML = 'm/s: ' + Math.floor(mps) + ', avg m/s: ' + Math.floor((messages * (1000 / 33)) / (now - start)) + ", total: " + messages + ", elapsed: " + Math.floor(elapsed * (1000 / 33)) + 'ms';
+       debug.innerHTML = 'm/s: ' + Math.floor(mps) + ', avg m/s: ' + Math.floor((messages * toSeconds) / (now - start)) + ", total: " + messages + ", elapsed: " + Math.floor(elapsed * toSeconds) + 'ms';
        
        grid = message.data.grid;
 

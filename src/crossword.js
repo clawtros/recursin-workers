@@ -1,7 +1,8 @@
 var intersect = require('./intersect');
 
 const Constants = {
-  UNPLAYABLE: "_",
+  BLANK: "_",
+  UNPLAYABLE: "#",
   ACROSS: Symbol("ACROSS"),
   DOWN: Symbol("DOWN")
 }
@@ -29,8 +30,7 @@ function Crossword(cells, across, down, wordlist, bads) {
       }
       return result;
     },    
-    wordList: wordlist,
-    
+    wordList: wordlist,    
     getWords: function(forDirection) {      
       if (forDirection) {
         return words.filter(function(e) {
@@ -58,7 +58,7 @@ function Crossword(cells, across, down, wordlist, bads) {
       return true;
     },    
     isComplete: function() {
-      return cells.indexOf(Constants.UNPLAYABLE) == -1;
+      return cells.indexOf(Constants.BLANK) == -1;
     }
   }
 
@@ -71,7 +71,7 @@ function Crossword(cells, across, down, wordlist, bads) {
     for (var i = 0; i < length; i++) {
       var cellIndex = startId + i * delta;
       value += cells[cellIndex];
-      if (cells[cellIndex] === Constants.UNPLAYABLE) {
+      if (cells[cellIndex] === Constants.BLANK) {
         blanks = true;
       } else {
         allblanks = false;
@@ -132,7 +132,7 @@ function WordList(words, definitions) {
           if (!searchWord.allBlanks) {
             var sets = [];
             for (var i = 0, l = searchValue.length; i < l; i++) {
-              if (searchValue[i] !== Constants.UNPLAYABLE) {
+              if (searchValue[i] !== Constants.BLANK) {
                 sets.push(letterPositionLookup[searchValue.length][i][searchValue[i]]);
               }
             }
@@ -149,7 +149,7 @@ function WordList(words, definitions) {
 }
 
 function getCandidate(words) {
-  var minLength = 100000000,
+  var minLength = Infinity,
       candidate;
   for (var i = 0, l = words.length; i < l; i++) {
     if (words[i].getOptions().length < minLength && words[i].hasBlanks) {
@@ -172,8 +172,8 @@ function solve(crossword, successCallback, progressCallback) {
   
   for (var j = 0, option; option = options[j]; j++) {
     var newState = word.set(option);
-    progressCallback(newState, (newState.getWords().map(function(e) { return e.value  }).join(", ") ));
     if (newState.getValidity() !== false) {
+      progressCallback(newState, (newState.getWords().map(function(e) { return e.value  }).join(", ") ));
       if (solve(newState, successCallback, progressCallback) === true) {
         return true;
       }
@@ -188,13 +188,3 @@ module.exports = {
   Constants: Constants,
   solve: solve
 }
-
-/* 
- * var words = crossword.getWords(),
- *     candidates = words.filter(function(e) {
- *       return e.hasBlanks
- *     }),
- *     ml = Math.min.apply(this, candidates.map(function(e) { return e.getOptions().length }))
- * filtered = candidates.filter(function(e) { return e.getOptions().length === ml })
- * word = filtered[parseInt(Math.random() * filtered.length)],
- *     options = word.getOptions();*/
