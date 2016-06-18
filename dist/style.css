@@ -1,0 +1,54 @@
+pre {
+    letter-spacing: 5px;
+    font-size: 2em;
+}
+#finished {
+    display: inline-block;
+    border-width: 1px 0 0 1px;
+    border-style: solid;
+}
+body {
+    font-family: monospace;
+    text-align: center;
+    display: flex;
+}
+
+body, html {
+    height: 100%;
+    margin: 0;
+    background: rgb(241, 241, 241);
+}
+main {
+    width: 960px;
+    max-width: 100%;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    box-shadow: 0 8px 4px -4px #ccc;
+}
+#words {
+    text-transform: uppercase;
+}
+#title {
+    margin: 10px 0;
+    padding: 0;
+    font-size: 2em;
+}
+.blank {
+    background-color: #222;
+    color: #222;
+}
+#finished {
+    margin-bottom: 30px;
+}
+span.cell {
+    height: 4vmin;
+    width: 4vmin;
+    display: inline-block;
+    text-align: center;
+    line-height: 4vmin;
+    text-transform: uppercase;
+    font-size: 3vmin;
+    border-width: 0 1px 1px 0;
+    border-style: solid;
+}
