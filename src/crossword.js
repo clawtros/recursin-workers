@@ -31,9 +31,9 @@ function Crossword(cells, across, down, wordlist, bads) {
         result += "\n";
       }
       return result;
-    },    
-    wordList: wordlist,    
-    getWords: function(forDirection) {      
+    },
+    wordList: wordlist,
+    getWords: function(forDirection) {
       if (forDirection) {
         return words.filter(function(e) {
           return e.direction === forDirection;
@@ -43,22 +43,22 @@ function Crossword(cells, across, down, wordlist, bads) {
     },
     getValidity: function() {
       var words = this.getWords(),
-          seen = [];      
+          seen = {};
       for (var i = 0, word; word = words[i]; i++) {
         if (bads[word.value] === true) {
           return false;
         }
         var wl = wordlist.matches(word).length;
-        if (wl === 0 || (!word.hasBlanks && seen.indexOf(word.value) > -1)) {
+        if (wl === 0 || (!word.hasBlanks && seen[word.value] === true)) {
           if (wl === 0) {
-            bads[word.value] = true; 
+            bads[word.value] = true;
           }
           return false;
         }
-        seen.push(word.value);
+        seen[word.value] = true;
       }
       return true;
-    },    
+    },
     isComplete: function() {
       return cells.indexOf(Constants.BLANK) == -1;
     }
@@ -69,7 +69,7 @@ function Crossword(cells, across, down, wordlist, bads) {
         blanks = false,
         allblanks = true,
         delta = direction == Constants.ACROSS ? 1 : size;
-    
+
     for (var i = 0; i < length; i++) {
       var cellIndex = startId + i * delta;
       value += cells[cellIndex];
@@ -77,14 +77,14 @@ function Crossword(cells, across, down, wordlist, bads) {
         blanks = true;
       } else {
         allblanks = false;
-      }      
+      }
     }
-    
+
     return {
       getOptions: function() {
         return wordlist.matches(this);
       },
-      
+
       set: function(word) {
         var newCells = cells.slice(),
             delta = direction == Constants.ACROSS ? 1 : size;
@@ -92,8 +92,8 @@ function Crossword(cells, across, down, wordlist, bads) {
           var cellIndex = startId + i * delta;
           newCells[cellIndex] = word[i];
         }
-        return new Crossword(newCells, across, down, wordlist, bads);
-      },      
+        return Crossword(newCells, across, down, wordlist, bads);
+      },
       hasBlanks:  blanks,
       allBlanks:  allblanks,
       direction: direction,
@@ -116,14 +116,14 @@ function WordList(words, definitions) {
       letterPositionLookup[word.length][i][word[i]].push(word);
     }
   }
-  
+
   return {
-    matches: function(searchWord) {      
+    matches: function(searchWord) {
       var matchIndexes = [],
           result = [],
           searchValue = searchWord.value;
 
-      if (!memo[searchValue]) {        
+      if (!memo[searchValue]) {
         if (!searchWord.hasBlanks) {
           if (lookup[searchValue] === true) {
             result = [searchValue];
@@ -142,7 +142,7 @@ function WordList(words, definitions) {
           } else {
             result = words;
           }
-        }  
+        }
         memo[searchValue] = result;
       }
       return memo[searchValue];
@@ -168,10 +168,10 @@ function solve(crossword, successCallback, progressCallback) {
     successCallback(crossword);
     return true;
   }
-  
-  var word = getCandidate(crossword.getWords()),  
+
+  var word = getCandidate(crossword.getWords()),
       options = word.getOptions();
-  
+
   for (var j = 0, option; option = options[j]; j++) {
     var newState = word.set(option);
     if (newState.getValidity() !== false) {
@@ -179,9 +179,9 @@ function solve(crossword, successCallback, progressCallback) {
       if (solve(newState, successCallback, progressCallback) === true) {
         return true;
       }
-    } 
+    }
   }
-  return false;  
+  return false;
 }
 
 module.exports = {

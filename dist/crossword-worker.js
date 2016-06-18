@@ -45,9 +45,9 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	var jscw = __webpack_require__(1);
-	var nytwords = __webpack_require__(2);
-	var nytwords2 = __webpack_require__(5);
-	var shuffle = __webpack_require__(3);
+	var nytwords = __webpack_require__(3);
+	var nytwords2 = __webpack_require__(4);
+	var shuffle = __webpack_require__(5);
 
 	function makeSquare(size, wordlist) {
 	  var cells = [], across = {}, down = {};
@@ -168,7 +168,7 @@
 
 	'use strict';
 
-	var intersect = __webpack_require__(4);
+	var intersect = __webpack_require__(2);
 
 	const Constants = {
 	  BLANK: "_",
@@ -199,9 +199,9 @@
 	        result += "\n";
 	      }
 	      return result;
-	    },    
-	    wordList: wordlist,    
-	    getWords: function(forDirection) {      
+	    },
+	    wordList: wordlist,
+	    getWords: function(forDirection) {
 	      if (forDirection) {
 	        return words.filter(function(e) {
 	          return e.direction === forDirection;
@@ -211,22 +211,22 @@
 	    },
 	    getValidity: function() {
 	      var words = this.getWords(),
-	          seen = [];      
+	          seen = {};
 	      for (var i = 0, word; word = words[i]; i++) {
 	        if (bads[word.value] === true) {
 	          return false;
 	        }
 	        var wl = wordlist.matches(word).length;
-	        if (wl === 0 || (!word.hasBlanks && seen.indexOf(word.value) > -1)) {
+	        if (wl === 0 || (!word.hasBlanks && seen[word.value] === true)) {
 	          if (wl === 0) {
-	            bads[word.value] = true; 
+	            bads[word.value] = true;
 	          }
 	          return false;
 	        }
-	        seen.push(word.value);
+	        seen[word.value] = true;
 	      }
 	      return true;
-	    },    
+	    },
 	    isComplete: function() {
 	      return cells.indexOf(Constants.BLANK) == -1;
 	    }
@@ -237,7 +237,7 @@
 	        blanks = false,
 	        allblanks = true,
 	        delta = direction == Constants.ACROSS ? 1 : size;
-	    
+
 	    for (var i = 0; i < length; i++) {
 	      var cellIndex = startId + i * delta;
 	      value += cells[cellIndex];
@@ -245,14 +245,14 @@
 	        blanks = true;
 	      } else {
 	        allblanks = false;
-	      }      
+	      }
 	    }
-	    
+
 	    return {
 	      getOptions: function() {
 	        return wordlist.matches(this);
 	      },
-	      
+
 	      set: function(word) {
 	        var newCells = cells.slice(),
 	            delta = direction == Constants.ACROSS ? 1 : size;
@@ -260,8 +260,8 @@
 	          var cellIndex = startId + i * delta;
 	          newCells[cellIndex] = word[i];
 	        }
-	        return new Crossword(newCells, across, down, wordlist, bads);
-	      },      
+	        return Crossword(newCells, across, down, wordlist, bads);
+	      },
 	      hasBlanks:  blanks,
 	      allBlanks:  allblanks,
 	      direction: direction,
@@ -284,14 +284,14 @@
 	      letterPositionLookup[word.length][i][word[i]].push(word);
 	    }
 	  }
-	  
+
 	  return {
-	    matches: function(searchWord) {      
+	    matches: function(searchWord) {
 	      var matchIndexes = [],
 	          result = [],
 	          searchValue = searchWord.value;
 
-	      if (!memo[searchValue]) {        
+	      if (!memo[searchValue]) {
 	        if (!searchWord.hasBlanks) {
 	          if (lookup[searchValue] === true) {
 	            result = [searchValue];
@@ -310,7 +310,7 @@
 	          } else {
 	            result = words;
 	          }
-	        }  
+	        }
 	        memo[searchValue] = result;
 	      }
 	      return memo[searchValue];
@@ -336,10 +336,10 @@
 	    successCallback(crossword);
 	    return true;
 	  }
-	  
-	  var word = getCandidate(crossword.getWords()),  
+
+	  var word = getCandidate(crossword.getWords()),
 	      options = word.getOptions();
-	  
+
 	  for (var j = 0, option; option = options[j]; j++) {
 	    var newState = word.set(option);
 	    if (newState.getValidity() !== false) {
@@ -347,9 +347,9 @@
 	      if (solve(newState, successCallback, progressCallback) === true) {
 	        return true;
 	      }
-	    } 
+	    }
 	  }
-	  return false;  
+	  return false;
 	}
 
 	module.exports = {
@@ -362,6 +362,71 @@
 
 /***/ },
 /* 2 */
+/***/ function(module, exports) {
+
+	module.exports = intersect;
+
+	function many (sets) {
+	  var o = {};
+	  var l = sets.length - 1;
+	  var first = sets[0];
+	  var last = sets[l];
+	  
+	  for(var i in first) o[first[i]] = 0;
+	  
+	  for(var i = 1; i <= l; i++) {
+	    var row = sets[i];
+	    for(var j in row) {
+	      var key = row[j];
+	      if(o[key] === i - 1) o[key] = i;
+	    }
+	  }
+	  
+	  var a = [];
+	  for(var i in last) {
+	    var key = last[i];
+	    if(o[key] === l) a.push(key);
+	  }
+	  
+	  return a;
+	}
+
+	function intersect (a, b) {
+	  if (!b) return many(a);
+
+	  var res = [];
+	  for (var i = 0; i < a.length; i++) {
+	    if (indexOf(b, a[i]) > -1) res.push(a[i]);
+	  }
+	  return res;
+	}
+
+	intersect.big = function(a, b) {
+	  if (!b) return many(a);
+	  
+	  var ret = [];
+	  var temp = {};
+	  
+	  for (var i = 0; i < b.length; i++) {
+	    temp[b[i]] = true;
+	  }
+	  for (var i = 0; i < a.length; i++) {
+	    if (temp[a[i]]) ret.push(a[i]);
+	  }
+	  
+	  return ret;
+	}
+
+	function indexOf(arr, el) {
+	  for (var i = 0; i < arr.length; i++) {
+	    if (arr[i] === el) return i;
+	  }
+	  return -1;
+	}
+
+
+/***/ },
+/* 3 */
 /***/ function(module, exports) {
 
 	module.exports = ['a',
@@ -22175,97 +22240,7 @@
 
 
 /***/ },
-/* 3 */
-/***/ function(module, exports) {
-
-	
-	module.exports = function (array) {
-	  var currentIndex = array.length, temporaryValue, randomIndex;
-
-	  // While there remain elements to shuffle...
-	  while (0 !== currentIndex) {
-
-	    // Pick a remaining element...
-	    randomIndex = Math.floor(Math.random() * currentIndex);
-	    currentIndex -= 1;
-
-	    // And swap it with the current element.
-	    temporaryValue = array[currentIndex];
-	    array[currentIndex] = array[randomIndex];
-	    array[randomIndex] = temporaryValue;
-	  }
-
-	  return array;
-	}
-
-
-/***/ },
 /* 4 */
-/***/ function(module, exports) {
-
-	module.exports = intersect;
-
-	function many (sets) {
-	  var o = {};
-	  var l = sets.length - 1;
-	  var first = sets[0];
-	  var last = sets[l];
-	  
-	  for(var i in first) o[first[i]] = 0;
-	  
-	  for(var i = 1; i <= l; i++) {
-	    var row = sets[i];
-	    for(var j in row) {
-	      var key = row[j];
-	      if(o[key] === i - 1) o[key] = i;
-	    }
-	  }
-	  
-	  var a = [];
-	  for(var i in last) {
-	    var key = last[i];
-	    if(o[key] === l) a.push(key);
-	  }
-	  
-	  return a;
-	}
-
-	function intersect (a, b) {
-	  if (!b) return many(a);
-
-	  var res = [];
-	  for (var i = 0; i < a.length; i++) {
-	    if (indexOf(b, a[i]) > -1) res.push(a[i]);
-	  }
-	  return res;
-	}
-
-	intersect.big = function(a, b) {
-	  if (!b) return many(a);
-	  
-	  var ret = [];
-	  var temp = {};
-	  
-	  for (var i = 0; i < b.length; i++) {
-	    temp[b[i]] = true;
-	  }
-	  for (var i = 0; i < a.length; i++) {
-	    if (temp[a[i]]) ret.push(a[i]);
-	  }
-	  
-	  return ret;
-	}
-
-	function indexOf(arr, el) {
-	  for (var i = 0; i < arr.length; i++) {
-	    if (arr[i] === el) return i;
-	  }
-	  return -1;
-	}
-
-
-/***/ },
-/* 5 */
 /***/ function(module, exports) {
 
 	module.exports = ["aa",
@@ -65642,6 +65617,31 @@
 	"zynga",
 	"zztop",
 	"zzzquil"];
+
+
+/***/ },
+/* 5 */
+/***/ function(module, exports) {
+
+	
+	module.exports = function (array) {
+	  var currentIndex = array.length, temporaryValue, randomIndex;
+
+	  // While there remain elements to shuffle...
+	  while (0 !== currentIndex) {
+
+	    // Pick a remaining element...
+	    randomIndex = Math.floor(Math.random() * currentIndex);
+	    currentIndex -= 1;
+
+	    // And swap it with the current element.
+	    temporaryValue = array[currentIndex];
+	    array[currentIndex] = array[randomIndex];
+	    array[randomIndex] = temporaryValue;
+	  }
+
+	  return array;
+	}
 
 
 /***/ }
