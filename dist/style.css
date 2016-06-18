@@ -4,8 +4,6 @@ pre {
 }
 #finished {
     display: inline-block;
-    border-width: 1px 0 0 1px;
-    border-style: solid;
 }
 body {
     font-family: monospace;
@@ -18,16 +16,24 @@ body, html {
     margin: 0;
     background: rgb(241, 241, 241);
 }
+
+
+
 main {
-    width: 960px;
     max-width: 100%;
     margin: auto;
     background: white;
     padding: 20px;
     box-shadow: 0 8px 4px -4px #ccc;
 }
-#words {
+#words, #debug {
+    max-width: 960px;
+    text-align: center;
+    margin: 10px auto;
     text-transform: uppercase;
+}
+#debug {
+    color: #ccc;
 }
 #title {
     margin: 10px 0;
@@ -40,7 +46,10 @@ main {
 }
 #finished {
     margin-bottom: 30px;
+
+    box-shadow: 1px 1px;
 }
+
 span.cell {
     height: 4vmin;
     width: 4vmin;
@@ -48,7 +57,6 @@ span.cell {
     text-align: center;
     line-height: 4vmin;
     text-transform: uppercase;
-    font-size: 3vmin;
-    border-width: 0 1px 1px 0;
-    border-style: solid;
+    font-size: 2.5vmin;
+    box-shadow: inset 1px 1px;
 }
